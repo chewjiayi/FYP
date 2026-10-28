@@ -1,0 +1,83 @@
+<!-- DONE BY PRETI -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESG Pledgeboard</title>
+    <link rel="stylesheet" href="/Pledgeboard/Pledgeboard.css">
+</head>
+<body>
+    <!-- Pledgeboard Page (DONE BY PRETI)-->
+    <div class="pledgeboard-container">
+        <!-- Header (DONE BY PRETI)-->
+        <header class="pledgeboard-header">
+            <button class="back-button" onclick="goBackToFeedback()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Back
+            </button>
+            <div class="header-content">
+                <h1>📜 The Pledgeboard</h1>
+                <p>See what pledges our community has made this month</p>
+            </div>
+        </header>
+
+        <!-- Search Bar (DONE BY PRETI)-->
+        <section class="search-section">
+            <div class="search-container">
+                <input type="text" id="pledge-search" class="search-input" placeholder="🔍 Search for a friend or yourself by name..." oninput="searchPledges()">
+                <button class="clear-search-btn" onclick="clearSearch()" style="display: none;">✕ Clear</button>
+            </div>
+            <p class="search-hint">Search only looks through this month's pledges - older pledges won't appear</p>
+        </section>
+
+        <!-- Top 3 Section (DONE BY PRETI)-->
+        <section class="top-three-section">
+            <h2 class="section-title">🌟 Top 3 Most Liked Pledges</h2>
+            <div class="top-three-grid" id="top-three-grid">
+                <!-- Top 3 pledges will be dynamically inserted here (DONE BY PRETI)-->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading top pledges...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- All Pledges Section (DONE BY PRETI)-->
+        <section class="all-pledges-section">
+            <h2 class="section-title">📜 All Pledges This Month</h2>
+            <div class="pledges-list" id="pledges-list">
+                <!-- All other pledges will be dynamically inserted here (DONE BY PRETI)-->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading pledges...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Empty State (shown when no pledges) (DONE BY PRETI)-->
+        <div class="empty-state" id="empty-state" style="display: none;">
+            <div class="empty-icon">📝</div>
+            <h3>No Pledges Yet This Month</h3>
+            <p>Be the first to share your commitment to sustainability!</p>
+            <button class="cta-button" onclick="goBackToFeedback()">
+                Make a Pledge
+            </button>
+        </div>
+
+        <!-- No Results State (shown when search returns nothing) (DONE BY PRETI)-->
+        <div class="empty-state" id="no-results-state" style="display: none;">
+            <div class="empty-icon">🔍</div>
+            <h3>No Matching Pledges Found</h3>
+            <p>Try searching for a different name</p>
+            <button class="cta-button" onclick="clearSearch()">
+                Clear Search
+            </button>
+        </div>
+    </div>
+
+    <script src="/Pledgeboard/Pledgeboard.js"></script>
+</body>
+</html>

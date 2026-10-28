@@ -1,0 +1,1220 @@
+<!--
+  XY CHANGE SUMMARY (DONE BY XY)
+  ============================================================
+
+  1. PLEDGE TOPIC SELECTION
+     select#pledge-topic            - Added pledge topic selection for badge assignment (DONE BY XY)
+
+  2. OPTIONAL PLEDGE FLOW
+     button#skip-pledge-text        - Added "I do not want to make a pledge" action (DONE BY XY)
+     skip pledge behavior           - Skipped pledge path awards Feedback Contributor automatically (DONE BY XY)
+
+  3. GUIDED PUBLIC FEEDBACK FLOW
+     progress indicator             - Added Consent > Details > Feedback > Pledge > Photo > Confirm steps (DONE BY XY)
+     friendly page microcopy        - Shortened page descriptions for kiosk users (DONE BY XY)
+     validation alert placeholders  - Added inline alert areas for missing details, feedback, pledge, and photo (DONE BY XY)
+
+  4. PUBLIC FORM CLEANUP
+     removed class/course field     - Removed school-only class/course question from public feedback form (DONE BY XY)
+     removed class/course summary   - Removed class/course row from confirmation page (DONE BY XY)
+
+  5. KIOSK IDLE RESET
+     div#idle-timeout-modal         - Added 1-minute idle reset warning modal with Keep Going and Reset Now actions (DONE BY XY)
+
+  6. KIOSK CELEBRATION MOMENT
+     section#celebration-moment     - Added badge reveal, mini tree, impact counters and keepsake preview (DONE BY XY)
+     div#celebration-tree-leaves    - Browser-rendered leaves for the post-submission tree animation (DONE BY XY)
+     img#celebration-photo          - Shows the visitor processed photo in the final kiosk moment (DONE BY XY)
+
+  FIND COMMAND
+     rg -n "XY CHANGE SUMMARY|DONE BY XY" frontend backend
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.95, user-scalable=no">
+    <title>ESG Digital Feedback</title>
+    
+    <style>
+        @media (max-width: 768px) {
+            :root {
+                --mobile-scale: 0.9;
+                --mobile-scale-inverse: 1.111;
+            }
+            
+            body {
+                transform: scale(var(--mobile-scale));
+                transform-origin: top left;
+                width: calc(100% * var(--mobile-scale-inverse));
+                min-height: calc(100vh * var(--mobile-scale-inverse));
+                position: relative;
+                left: 0;
+                top: 0;
+                transition: transform 0.2s ease;
+            }
+            
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                z-index: 9999;
+                opacity: 1;
+                transition: opacity 0.3s ease;
+            }
+            
+            body.scale-applied::before {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+        
+        .language-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 16px 0 20px 0;
+        }
+
+        .language-selector button {
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .language-selector button:hover {
+            background: #f3f4f6;
+        }
+
+        .language-selector button.active {
+            background: #6366F1;
+            color: white;
+            border-color: #6366F1;
+        }
+
+        /* Always-visible language switcher and keyboard shortcut hint (Done by Caeden) */
+        .floating-language-selector {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 10000;
+            margin: 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+        }
+
+        .floating-language-selector[hidden] {
+            display: none;
+        }
+
+        .floating-language-selector button {
+            padding: 7px 10px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .floating-language-selector {
+                top: 10px;
+                right: 10px;
+                gap: 6px;
+                padding: 6px;
+            }
+
+            .floating-language-selector button {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="feedback.css?v=landing-cleanup-20260716">
+</head>
+<body>
+    <!-- Global language switcher: click/tap or use Alt+1 English, Alt+2 Chinese, Alt+3 Malay, Alt+4 Tamil (Done by Caeden) -->
+    <div class="language-selector floating-language-selector" aria-label="Choose feedback form language" hidden>
+        <button type="button" onclick="setLanguage('en')" data-lang="en" class="active" title="Alt+1">English</button>
+        <button type="button" onclick="setLanguage('zh')" data-lang="zh" title="Alt+2">&#20013;&#25991;</button>
+        <button type="button" onclick="setLanguage('ms')" data-lang="ms" title="Alt+3">Bahasa Melayu</button>
+        <button type="button" onclick="setLanguage('ta')" data-lang="ta" title="Alt+4">&#2980;&#2990;&#3007;&#2996;&#3021;</button>
+    </div>
+
+    <!-- Lost and found shortcut for every feedback form page - changes made by nick 
+    <button type="button" class="lost-found-shortcut" id="lost-found-shortcut" onclick="openLostFoundModal()" hidden>
+        <i class="fa-solid fa-magnifying-glass-location" aria-hidden="true"></i>
+        <span>Report Lost Item</span>
+    </button>-->
+
+    <!-- Interactive RP teddy bear companion - changes made by nick -->
+    <button type="button" class="rp-bear-companion" id="rp-bear-companion" aria-label="Republic Polytechnic helper bear" hidden>
+            <span class="rp-bear-guide" aria-live="polite">
+                <span class="rp-bear-progress" id="rp-bear-progress">Step 1 of 5</span>
+                <span class="rp-bear-speech" id="rp-bear-speech">I can help if you tap me.</span>
+                <!-- RP guide voice toggle (DONE BY NICK) -->
+                <span class="rp-bear-voice-toggle" id="rp-bear-voice-toggle" role="button" tabindex="0" aria-pressed="false" title="Toggle guide voice">
+                    <i class="fa-solid fa-volume-xmark" aria-hidden="true"></i>
+                    <span>Voice</span>
+                </span>
+                <span class="rp-bear-actions" id="rp-bear-actions"></span>
+            </span>
+        <span class="rp-bear" aria-hidden="true">
+            <!-- Teddy bear polish details - changes made by nick -->
+            <span class="rp-bear-shadow"></span>
+            <span class="rp-bear-ear left"></span>
+            <span class="rp-bear-ear right"></span>
+            <span class="rp-bear-head">
+                <span class="rp-bear-eye left"></span>
+                <span class="rp-bear-eye right"></span>
+                <span class="rp-bear-cheek left"></span>
+                <span class="rp-bear-cheek right"></span>
+                <span class="rp-bear-muzzle">
+                    <span class="rp-bear-nose"></span>
+                    <span class="rp-bear-smile"></span>
+                </span>
+            </span>
+            <span class="rp-bear-arm left"></span>
+            <span class="rp-bear-arm right"></span>
+            <span class="rp-bear-body">
+                <span class="rp-bear-scarf"></span>
+                <span class="rp-bear-shirt">
+                    <img src="/assets/static/rp-logo.png" alt="">
+                </span>
+                <span class="rp-bear-belly"></span>
+            </span>
+            <span class="rp-bear-foot left"></span>
+            <span class="rp-bear-foot right"></span>
+        </span>
+    </button>
+    
+    <!-- Landing Page -->
+    <div id="land-page-no-qrcode">
+        <div id="landing-page" class="container">
+            <div class="card" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
+                <div class="left-section">
+                    <div class="brand">
+                        <!-- <div class="icon">✨</div> -->
+                         <div class="icon">
+                            <img src="/assets/static/rp-logo.png" width="30" height="30" alt="RP Logo">
+                        </div>
+                        <span class="brand-text" id="brand-text">ESG Feedback Portal</span>
+                    </div>
+
+                    <!-- done by Caeden -->
+                     <!--Comment out this section as reqested by Project Owner (Yu Kang)-->
+                    <!-- <div class="language-selector">
+                        <button type="button" onclick="setLanguage('en')" data-lang="en" class="active">English</button>  
+                        <button type="button" onclick="setLanguage('ms')" data-lang="ms">Bahasa Melayu</button>
+                        <button type="button" onclick="setLanguage('zh')" data-lang="zh">中文</button>
+                        <button type="button" onclick="setLanguage('ta')" data-lang="ta">தமிழ்</button>
+                    </div> -->
+
+                    <h1 id="form-landing-title">Let's turn your ideas into reality</h1>
+                    
+                    <p class="subtitle" id="form-landing-subtitle">Share your thoughts and help us improve our services. Your feedback matters.</p>
+
+                    <!-- Live visitor count restored on start screen (DONE BY NICK) -->
+                    <div class="landing-visitor-count" aria-live="polite">
+                        <span class="landing-visitor-icon" aria-hidden="true">
+                            <i class="fa-solid fa-users"></i>
+                        </span>
+                        <span class="landing-visitor-copy">
+                            <span class="landing-visitor-count-label">Live visitors</span>
+                            <small>Growing with every contribution</small>
+                        </span>
+                        <span class="landing-visitor-number">
+                            <strong data-visitor-count-value>--</strong>
+                            <span>visitors</span>
+                        </span>
+                        <span class="landing-next-visitor">Next #<span data-next-visitor-value>--</span></span>
+                    </div>
+
+                    <button class="cta-button" id="start-feedback-btn" onclick="showConsentPage()">
+                        Start Feedback Form
+                        <span class="arrow">→</span>
+                    </button>
+
+                    <button class="pledgeboard-button" id="view-pledgeboards-btn" onclick="viewPledgeboard()" style="margin-top: 15px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+                        📜 View Pledgeboards
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <div id="land-page-qrcode">
+        <div id="landing-page-qrcode" class="container">
+            <div class="card">
+                <div class="left-section">
+                    <div class="brand">
+                        <div class="icon">✨</div>
+                        <span class="brand-text" id="brand-text-qrcode" data-text-target="brand-text">Community Feedback Portal</span>
+                    </div>
+
+                    <!-- done by (Caeden) -->
+                    <div class="language-selector">
+                        <button type="button" onclick="setLanguage('en')" data-lang="en" class="active">English</button>  
+                        <button type="button" onclick="setLanguage('ms')" data-lang="ms">Bahasa Melayu</button>
+                        <button type="button" onclick="setLanguage('zh')" data-lang="zh">中文</button>
+                        <button type="button" onclick="setLanguage('ta')" data-lang="ta">தமிழ்</button>
+                    </div>
+
+                    <h1 id="form-landing-title-qrcode" data-text-target="form-landing-title">Let's turn your ideas into reality</h1>
+            
+                    <p class="subtitle" id="form-landing-subtitle-qrcode" data-text-target="form-landing-subtitle">Share your thoughts and help us improve our services. Your feedback matters.</p>
+
+                    <!-- Live visitor count restored on QR start screen (DONE BY NICK) -->
+                    <div class="landing-visitor-count" aria-live="polite">
+                        <span class="landing-visitor-icon" aria-hidden="true">
+                            <i class="fa-solid fa-users"></i>
+                        </span>
+                        <span class="landing-visitor-copy">
+                            <span class="landing-visitor-count-label">Live visitors</span>
+                            <small>Growing with every contribution</small>
+                        </span>
+                        <span class="landing-visitor-number">
+                            <strong data-visitor-count-value>--</strong>
+                            <span>visitors</span>
+                        </span>
+                        <span class="landing-next-visitor">Next #<span data-next-visitor-value>--</span></span>
+                    </div>
+
+                    <button class="cta-button" id="start-feedback-btn-qrcode" data-text-target="start-feedback-btn" onclick="showConsentPage()">
+                        Start Feedback Form
+                        <span class="arrow">→</span>
+                    </button>
+
+                    <button class="pledgeboard-button" id="view-pledgeboards-btn-qrcode" data-text-target="view-pledgeboards-btn" onclick="viewPledgeboard()" style="margin-top: 15px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+                        📜 View Pledgeboards
+                    </button>
+
+                </div>
+
+    <!---- Remove QR code section for now, can be added back in later if needed (Yu Kang) ---->
+        <div class="right-section">
+            <div class="qr-header">
+                <span class="qr-icon">📱</span>
+                <span id="qr-header-text">Scan for Mobile Feedback</span>
+            </div>
+            
+            <div class="qr-code" id="dynamic-qr">
+                <svg class="qr-image" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="200" height="200" fill="white"/>
+                    <rect x="10" y="10" width="50" height="50" fill="black"/>
+                    <rect x="20" y="20" width="30" height="30" fill="white"/>
+                    <rect x="25" y="25" width="20" height="20" fill="black"/>
+                    <rect x="140" y="10" width="50" height="50" fill="black"/>
+                    <rect x="150" y="20" width="30" height="30" fill="white"/>
+                    <rect x="155" y="25" width="20" height="20" fill="black"/>
+                    <rect x="10" y="140" width="50" height="50" fill="black"/>
+                    <rect x="20" y="150" width="30" height="30" fill="white"/>
+                    <rect x="25" y="155" width="20" height="20" fill="black"/>
+                </svg>
+            </div>
+            
+            <p class="qr-description" id="qr-description-text">Point your mobile camera here to open the feedback form on your phone</p>
+        </div>
+    </div>
+</div>
+    </div>
+
+    <!-- Feedback flow starts at Details; retention is saved as long-term automatically. -->
+    <!-- Details Page -->
+    <div id="details-page" class="container" style="display: none;">
+        <div class="consent-card">
+            <div class="consent-icon" style="background: #10b981;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="20" fill="#10b981"/>
+                    <path d="M20 12C17.79 12 16 13.79 16 16C16 18.21 17.79 20 20 20C22.21 20 24 18.21 24 16C24 13.79 22.21 12 20 12ZM20 22C16.67 22 10 23.67 10 27V28C10 28.55 10.45 29 11 29H29C29.55 29 30 28.55 30 28V27C30 23.67 23.33 22 20 22Z" fill="white"/>
+                </svg>
+            </div>
+            
+            <h2 class="consent-title" id="details-title">Tell Us Who You Are</h2>
+            <p class="consent-description" id="details-description">Just the essentials so we can send your photo.</p>
+            
+            <form class="details-form" onsubmit="submitDetails(event)" novalidate>
+                <p id="details-form-alert" class="form-alert" role="alert"></p>
+                <div class="form-group">
+                    <label for="user-name" id="name-label">Name</label>
+                    <input type="text" id="user-name" placeholder="Enter your name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="user-email" id="email-label">Email Address</label>
+                    <input type="email" id="user-email" placeholder="Enter your email" required>
+                </div>
+
+                
+                <button type="submit" class="consent-button">
+                    <span id="continue-to-feedback-text">Continue to Feedback</span>
+                    <span class="arrow">→</span>
+                </button>
+                
+                <button type="button" class="secondary-button" onclick="goBackToConsent()" style="margin-top: 15px;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 10H5M5 10L8.33333 7M5 10L8.33333 13" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="back-from-details-text">Back</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feedback Form Page -->
+    <div id="feedback-page" class="container" style="display: none;">
+        <div class="feedback-form-card">
+            <div class="consent-icon" style="background: #10b981;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="20" fill="#10b981"/>
+                    <path d="M28 12H12C10.9 12 10 12.9 10 14V26C10 27.1 10.9 28 12 28H28C29.1 28 30 27.1 30 26V14C30 12.9 29.1 12 28 12ZM28 26H12V14H28V26ZM14 20H26V22H14V20ZM14 16H26V18H14V16Z" fill="white"/>
+                </svg>
+            </div>
+            
+            <h2 class="consent-title" id="feedback-title">Share Your Feedback</h2>
+            <p class="consent-description" id="feedback-description">A few quick taps. Honest answers are perfect.</p>
+            
+            <form class="feedback-form" onsubmit="submitFeedback(event)" novalidate>
+                <p id="feedback-form-alert" class="form-alert" role="alert"></p>
+                <div id="questions-container"></div>
+
+                <button type="submit" class="consent-button">
+                    <span id="continue-to-pledge-text">Continue to Pledge</span>
+                    <span class="arrow">→</span>
+                </button>
+                
+                <button type="button" class="secondary-button" onclick="goBackToDetails()" style="margin-top: 15px;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 10H5M5 10L8.33333 7M5 10L8.33333 13" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="back-from-feedback-text">Back</span>
+                </button>
+
+                <!-- Home button for feedback form done by nick -->
+                <button type="button" class="secondary-button" onclick="goHomeFromFeedbackForm()" style="margin-top: 15px;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 9.5L10 4L17 9.5V16C17 16.55 16.55 17 16 17H12.5V12H7.5V17H4C3.45 17 3 16.55 3 16V9.5Z" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="home-from-feedback-text">Home</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Pledge Page -->
+    <div id="pledge-page" class="container" style="display: none;">
+        <div class="consent-card">
+            <div class="consent-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="20" fill="url(#gradient)"/>
+                    <path d="M20 10L21.545 16.91H28.854L22.905 21.18L24.45 28.09L20 23.82L15.55 28.09L17.095 21.18L11.146 16.91H18.455L20 10Z" fill="white"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#667eea"/>
+                            <stop offset="100%" stop-color="#764ba2"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            
+            <h2 class="consent-title" id="pledge-title">Make Your Pledge</h2>
+            <p class="consent-description" id="pledge-description">Choose one action you can try after today.</p>
+
+            <div class="pledge-coach" id="pledge-coach">
+                <div class="pledge-coach-header">
+                    <span><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <div>
+                        <p class="examples-header" id="pledge-examples-header">Smart Pledge Coach</p>
+                        <strong id="pledge-coach-title">Make your pledge easier to act on</strong>
+                    </div>
+                </div>
+                <p id="pledge-coach-feedback" class="pledge-coach-feedback">
+                    Type your pledge below. The coach will suggest one small improvement.
+                </p>
+                <div class="pledge-quality" aria-label="Pledge quality score">
+                    <div class="pledge-quality-topline">
+                        <strong id="pledge-quality-score">Pledge strength: 0/3</strong>
+                        <span id="pledge-quality-label">Needs details</span>
+                    </div>
+                    <div class="pledge-quality-bar" aria-hidden="true">
+                        <span id="pledge-quality-fill"></span>
+                    </div>
+                    <div class="pledge-quality-checks">
+                        <span id="pledge-check-action">Specific action</span>
+                        <span id="pledge-check-measure">Measurable target</span>
+                        <span id="pledge-check-time">Timeframe</span>
+                    </div>
+                </div>
+                <div class="pledge-coach-suggestion">
+                    <span>Try this:</span>
+                    <p id="pledge-coach-suggestion">Choose a focus area or start typing to get a specific pledge.</p>
+                </div>
+                <p id="pledge-coach-reason" class="pledge-coach-reason">
+                    A stronger pledge says what you will do, how often, and by when.
+                </p>
+                <button type="button" id="apply-pledge-suggestion-btn" class="coach-apply-button" onclick="applyPledgeCoachSuggestion()" disabled>
+                    Use Suggestion
+                </button>
+            </div>
+
+            <form class="details-form" onsubmit="submitPledge(event)" novalidate>
+                <p id="pledge-form-alert" class="form-alert" role="alert"></p>
+                <div class="form-group">
+                    <label for="pledge-text" id="pledge-label">Your Pledge</label>
+                    <textarea id="pledge-text" rows="6" placeholder="I pledge to..." required maxlength="500"></textarea>
+                    <div class="char-counter">
+                        <span id="char-count">0</span>/<span id="characters-text">500 characters</span>
+                    </div>
+                </div>
+                <!-- Added by XY: explicit pledge topic selector used for topic-specific badge mapping - done by XY -->
+                <div class="form-group">
+                    <label for="pledge-topic" id="pledge-topic-label">Choose your sustainability focus</label>
+                    <input type="hidden" id="pledge-topic" required>
+                    <div id="pledge-topic-options" class="topic-checkbox-grid" role="group" aria-labelledby="pledge-topic-label" tabindex="-1">
+                        <label class="topic-checkbox-card">
+                            <input type="checkbox" name="pledge-topics" value="climate-change">
+                            <span data-topic-label="climate-change">Climate Change</span>
+                        </label>
+                        <label class="topic-checkbox-card">
+                            <input type="checkbox" name="pledge-topics" value="renewable-energy">
+                            <span data-topic-label="renewable-energy">Renewable Energy</span>
+                        </label>
+                        <label class="topic-checkbox-card">
+                            <input type="checkbox" name="pledge-topics" value="sustainable-living">
+                            <span data-topic-label="sustainable-living">Sustainable Living</span>
+                        </label>
+                        <label class="topic-checkbox-card">
+                            <input type="checkbox" name="pledge-topics" value="ocean-conservation">
+                            <span data-topic-label="ocean-conservation">Ocean Conservation</span>
+                        </label>
+                        <label class="topic-checkbox-card">
+                            <input type="checkbox" name="pledge-topics" value="ethical-governance">
+                            <span data-topic-label="ethical-governance">Ethical Governance</span>
+                        </label>
+                        <label class="topic-checkbox-card">
+                            <input type="checkbox" name="pledge-topics" value="community-impact">
+                            <span data-topic-label="community-impact">Community Impact</span>
+                        </label>
+                    </div>
+                    <small class="topic-help-text" id="pledge-topic-help">Choose one or more. Each selected focus unlocks a passport badge.</small>
+                </div>
+                <div class="privacy-notice">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 2L3 5V7.5C3 10.81 5.53 13.87 8 14.5C10.47 13.87 13 10.81 13 7.5V5L8 2Z" fill="#667eea"/>
+                    </svg>
+                    <p id="pledge-privacy-text">Your pledge will be displayed on our pledgeboard, inspiring others to take action</p>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button type="submit" class="consent-button" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                        <span id="continue-to-photo-text">Continue to Photo</span>
+                        <span class="arrow">→</span>
+                    </button>
+                    
+                    <button type="button" class="skip-pledge-button" onclick="skipPledge()">
+                        <span id="skip-pledge-text">I do not want to make a pledge</span>
+                    </button>
+
+                    <button type="button" class="secondary-button" onclick="goBackToFeedback()">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 10H5M5 10L8.33333 7M5 10L8.33333 13" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span id="back-from-pledge-text">Back</span>
+                    </button>
+
+                    <!-- Home button for pledge form (DONE BY NICK) -->
+                    <button type="button" class="secondary-button" onclick="goHomeFromFeedbackForm()">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 9.5L10 4L17 9.5V16C17 16.55 16.55 17 16 17H12.5V12H7.5V17H4C3.45 17 3 16.55 3 16V9.5Z" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span id="home-from-pledge-text">Home</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Photo Choice Page - changes made by nick -->
+    <div id="photo-choice-page" class="container" style="display: none;">
+        <div class="consent-card">
+            <div class="consent-icon" style="background: #667eea;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="20" fill="#667eea"/>
+                    <path d="M16 12L13 15H9C7.9 15 7 15.9 7 17V27C7 28.1 7.9 29 9 29H31C32.1 29 33 28.1 33 27V17C33 15.9 32.1 15 31 15H27L24 12H16ZM20 25C17.24 25 15 22.76 15 20C15 17.24 17.24 15 20 15C22.76 15 25 17.24 25 20C25 22.76 22.76 25 20 25Z" fill="white"/>
+                </svg>
+            </div>
+
+            <h2 class="consent-title" id="photo-choice-title">Would you like to take a photo?</h2>
+            <p class="consent-description" id="photo-choice-description">You can take a keepsake photo, or skip it and submit your feedback now.</p>
+            <p id="photo-choice-form-alert" class="form-alert" role="alert"></p>
+
+            <div class="photo-choice-actions">
+                <button type="button" class="consent-button" onclick="startPhotoFlow()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <span id="take-photo-choice-text">Take Photo</span>
+                </button>
+
+                <button type="button" class="secondary-button" onclick="skipPhoto()">
+                    <span id="skip-photo-choice-text">Skip Photo</span>
+                </button>
+
+                <button type="button" class="secondary-button" onclick="goBackToPledge()">
+                    <span id="back-from-photo-choice-text">Back</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Capture Page -->
+    <div id="photo-page" class="container" style="display: none;">
+        <div class="photo-card">
+            <div class="consent-icon" style="background: #667eea;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="20" fill="#667eea"/>
+                    <path d="M16 12L13 15H9C7.9 15 7 15.9 7 17V27C7 28.1 7.9 29 9 29H31C32.1 29 33 28.1 33 27V17C33 15.9 32.1 15 31 15H27L24 12H16ZM20 25C17.24 25 15 22.76 15 20C15 17.24 17.24 15 20 15C22.76 15 25 17.24 25 20C25 22.76 22.76 25 20 25Z" fill="white"/>
+                </svg>
+            </div>
+            
+            <h2 class="consent-title" id="photo-title">Capture Your Photo</h2>
+            <p class="consent-description" id="photo-description">Your photo will sent to you through email</p>
+            <p id="photo-form-alert" class="form-alert" role="alert"></p>
+            
+            <!-- facial detection (Done by Yu Kang) -->
+            <p id="face-detection-status" class="face-detection-status info">Preparing face detection...</p>
+
+            <!-- Photo or boomerang capture selection - changes made by nick -->
+            <div class="capture-mode-selector" role="group" aria-label="Capture mode">
+                <button type="button" id="photo-mode-btn" class="capture-mode-btn active" onclick="selectCaptureMode('photo')" aria-pressed="true">
+                    Photo
+                </button>
+                <button type="button" id="boomerang-mode-btn" class="capture-mode-btn" onclick="selectCaptureMode('boomerang')" aria-pressed="false">
+                    Boomerang GIF
+                </button>
+            </div>
+
+            <!-- Beauty filter visitor setting - changes made by nick -->
+            <div class="beauty-filter-setting" id="beauty-filter-setting-panel">
+                <label for="beauty-filter-setting">Beauty Filter</label>
+                <select id="beauty-filter-setting" class="filter-setting-select" aria-label="Beauty filter strength">
+                    <option value="off">Off</option>
+                    <option value="light">Light</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="strong">Strong</option>
+                </select>
+            </div>
+
+            <!-- Swipeable animated face filter tray - changes made by nick -->
+            <div class="face-filter-panel" aria-label="Virtual face filters">
+                <div class="face-filter-active" id="face-filter-active">No filter</div>
+                <div class="face-filter-selector" id="face-filter-selector" role="listbox" aria-label="Swipe face filters">
+                    <button type="button" class="face-filter-card active" data-accessory="none" role="option" aria-selected="true">
+                        <span class="face-filter-preview none">No</span>
+                        <span>None</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="glasses" role="option" aria-selected="false">
+                        <span class="face-filter-preview glasses"></span>
+                        <span>Glasses</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="sparkle-glasses" role="option" aria-selected="false">
+                        <span class="face-filter-preview sparkle-glasses"></span>
+                        <span>Sparkle</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="moustache" role="option" aria-selected="false">
+                        <span class="face-filter-preview moustache"></span>
+                        <span>Stache</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="hat" role="option" aria-selected="false">
+                        <span class="face-filter-preview hat"></span>
+                        <span>Hat</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="flower-crown" role="option" aria-selected="false">
+                        <span class="face-filter-preview flower-crown"></span>
+                        <span>Flowers</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="halo" role="option" aria-selected="false">
+                        <span class="face-filter-preview halo"></span>
+                        <span>Halo</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="blush" role="option" aria-selected="false">
+                        <span class="face-filter-preview blush"></span>
+                        <span>Blush</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="party" role="option" aria-selected="false">
+                        <span class="face-filter-preview party"></span>
+                        <span>Party</span>
+                    </button>
+                    <!-- Extra face filter pack (DONE BY NICK) -->
+                    <button type="button" class="face-filter-card" data-accessory="rp-shades" role="option" aria-selected="false">
+                        <span class="face-filter-preview rp-shades"></span>
+                        <span>Shades</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="leaf-crown" role="option" aria-selected="false">
+                        <span class="face-filter-preview leaf-crown"></span>
+                        <span>Leaf</span>
+                    </button>
+                    <button type="button" class="face-filter-card" data-accessory="graduation" role="option" aria-selected="false">
+                        <span class="face-filter-preview graduation"></span>
+                        <span>Grad</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="photo-preview">
+                <div id="camera-container" class="camera-view">
+                    <video id="video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    <canvas id="face-accessory-canvas" class="face-accessory-canvas" aria-hidden="true"></canvas>
+                    <canvas id="photo-canvas" style="display: none;"></canvas>
+                    <div id="countdown-overlay" style="display: none;">
+                        <span id="countdown-text">6</span>
+                    </div>
+                    <div class="corner top-left"></div>
+                    <div class="corner top-right"></div>
+                    <div class="corner bottom-left"></div>
+                    <div class="corner bottom-right"></div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+
+    <!-- NEW Mirror Button done by nick-->
+    <button id="invert-btn" class="secondary-button" type="button">
+        Mirror View
+    </button>
+
+    <!-- Existing Capture Button -->
+    <button id="capture-btn" class="consent-button" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="3" fill="white"/>
+            <path d="M10 2C8.9 2 8 2.9 8 4H5C3.9 4 3 4.9 3 6V16C3 17.1 3.9 18 5 18H15C16.1 18 17 17.1 17 16V6C17 4.9 16.1 4 15 4H12C12 2.9 11.1 2 10 2Z"
+            stroke="white" stroke-width="1.5"/>
+        </svg>
+        <span id="capture-photo-text">Capture Photo</span>
+    </button>
+
+    <!-- Existing Back Button -->
+    <button type="button" class="secondary-button" onclick="goBackToPledge()">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 10H5M5 10L8.33333 7M5 10L8.33333 13"
+            stroke="#667eea"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+        </svg>
+        <span id="back-from-photo-text">Back</span>
+    </button>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- File Upload Page -->
+    <div id="file-upload-page" class="container" style="display: none;">
+        <div class="consent-card">
+            <div class="consent-icon" style="background: #667eea;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="20" fill="#667eea"/>
+                    <path d="M16 12L13 15H9C7.9 15 7 15.9 7 17V27C7 28.1 7.9 29 9 29H31C32.1 29 33 28.1 33 27V17C33 15.9 32.1 15 31 15H27L24 12H16ZM20 25C17.24 25 15 22.76 15 20C15 17.24 17.24 15 20 15C22.76 15 25 17.24 25 20C25 22.76 22.76 25 20 25Z" fill="white"/>
+                </svg>
+            </div>
+
+            <h2 class="consent-title" id="upload-title">Upload Your Photo</h2>
+            <p class="consent-description" id="upload-description">Please take a photo using your camera and upload it</p>
+            <p id="upload-form-alert" class="form-alert" role="alert"></p>
+            <p id="upload-face-detection-status" class="face-detection-status info">Upload a photo to run face detection.</p>
+
+            <!-- Upload beauty filter visitor setting - changes made by nick -->
+            <div class="beauty-filter-setting" id="upload-beauty-filter-setting-panel">
+                <label for="upload-beauty-filter-setting">Beauty Filter</label>
+                <select id="upload-beauty-filter-setting" class="filter-setting-select" aria-label="Beauty filter strength">
+                    <option value="off">Off</option>
+                    <option value="light">Light</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="strong">Strong</option>
+                </select>
+            </div>
+
+            <div class="upload-instructions">
+                <div class="instruction-step">
+                    <div class="step-number">1</div>
+                    <div class="step-text" id="upload-step-1">Tap the button below to open your camera</div>
+                </div>
+                <div class="instruction-step">
+                    <div class="step-number">2</div>
+                    <div class="step-text" id="upload-step-2">Take a clear photo of yourself</div>
+                </div>
+                <div class="instruction-step">
+                    <div class="step-number">3</div>
+                    <div class="step-text" id="upload-step-3">Tap "Use Photo" to upload</div>
+                </div>
+            </div>
+
+            <div class="file-upload-area" onclick="document.getElementById('photo-input').click()">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 19V5C21 3.9 20.1 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19Z" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M16.5 12C16.5 14.4853 14.4853 16.5 12 16.5C9.51472 16.5 7.5 14.4853 7.5 12C7.5 9.51472 9.51472 7.5 12 7.5C14.4853 7.5 16.5 9.51472 16.5 12Z" stroke="#6366F1" stroke-width="2"/>
+                    <path d="M8.5 3H3V8.5" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h3 id="upload-camera-text">Tap to Open Camera</h3>
+                <p class="upload-hint" id="upload-hint-text">Your photo will be part of our community tree</p>
+                <input
+                    type="file"
+                    id="photo-input"
+                    accept="image/*"
+                    capture="environment"
+                    style="display: none;"
+                    onchange="handlePhotoUpload(event)"
+                >
+            </div>
+
+            <div id="photo-preview" style="display: none; margin: 20px 0;">
+                <div class="preview-frame">
+                    <img id="uploaded-photo-preview" src="" alt="Uploaded Photo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <button id="upload-continue-btn" class="consent-button" onclick="continueToStyleFromUpload()" disabled style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <span id="continue-to-style-text">Continue to Style Selection</span>
+                    <span class="arrow">→</span>
+                </button>
+                
+                <button type="button" class="secondary-button" onclick="goBackToPledge()">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 10H5M5 10L8.33333 7M5 10L8.33333 13" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="back-from-upload-text">Back</span>
+                </button>
+
+                <button class="secondary-button" onclick="retakePhotoFromUpload()">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 10C4 6.69 6.69 4 10 4C13.31 4 16 6.69 16 10C16 13.31 13.31 16 10 16" stroke="#667eea" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M10 2V6M10 2L8 4M10 2L12 4" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="retake-upload-text">Retake/Upload New Photo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Style Page -->
+    <div id="style-page" class="container" style="display: none;">
+        <div class="style-card">
+            <div class="consent-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="20" fill="url(#styleGradient)"/>
+                    <path d="M20 8C13.37 8 8 13.37 8 20C8 26.63 13.37 32 20 32C26.63 32 32 26.63 32 20C32 13.37 26.63 8 20 8ZM14 16C14 14.9 14.9 14 16 14C17.1 14 18 14.9 18 16C18 17.1 17.1 18 16 18C14.9 18 14 17.1 14 16ZM24 26H16V24H24V26ZM24 18C22.9 18 22 17.1 22 16C22 14.9 22.9 14 24 14C25.1 14 26 14.9 26 16C26 17.1 25.1 18 24 18Z" fill="white"/>
+                    <defs>
+                        <linearGradient id="styleGradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#667eea"/>
+                            <stop offset="100%" stop-color="#764ba2"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            
+            <h2 class="consent-title" id="style-title" style="color: #5568d3;">Choose Your Style</h2>
+            <p class="consent-description" id="style-description">Select your preferred overlay style for your RP memory photo!</p>
+            
+            <div class="theme-preview">
+                <div class="preview-frame" id="theme-preview">
+                    <div class="overlay-container">
+                        <img id="preview-photo" class="photo-background" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;"/>
+                        <img id="selected-overlay" class="overlay-image" src="" alt="Overlay" style="width: 100%; height: 100%; object-fit: contain;"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boomerang preview controls (DONE BY NICK) -->
+            <div class="boomerang-preview-controls" id="boomerang-preview-controls" hidden>
+                <button type="button" class="boomerang-control-btn" id="boomerang-toggle-preview-btn" onclick="toggleBoomerangPreviewPlayback()">
+                    <i class="fa-solid fa-pause" aria-hidden="true"></i>
+                    <span>Pause GIF Preview</span>
+                </button>
+                <button type="button" class="boomerang-control-btn" id="boomerang-retake-btn" onclick="retakePhotoFromStyle()">
+                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                    <span>Retake Boomerang</span>
+                </button>
+                <button type="button" class="boomerang-control-btn" id="boomerang-use-still-btn" onclick="switchBoomerangToStillPhoto()">
+                    <i class="fa-solid fa-image" aria-hidden="true"></i>
+                    <span>Use Still Photo</span>
+                </button>
+                <button type="button" class="boomerang-control-btn" id="boomerang-use-video-btn" onclick="switchStillPhotoToBoomerang()" hidden>
+                    <i class="fa-solid fa-film" aria-hidden="true"></i>
+                    <span>Use Boomerang</span>
+                </button>
+            </div>
+            
+            <div class="themes-section">
+                <h3 id="available-overlays-title" style="font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #1e293b;">Available Overlays</h3>
+                <div class="theme-grid" id="overlay-options"></div>
+                
+                <div class="selected-theme-display">
+                    <span style="font-weight: 600; color: #047857;"><span id="selected-label-text">Selected:</span> <span id="selected-overlay-name">Nature Overlay</span></span>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 30px;">
+                <button class="consent-button" onclick="confirmStyle()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7 10L9 12L13 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="use-style-continue-text">Use This Photo & Style & Continue</span>
+                </button>
+                
+                <button class="secondary-button" onclick="retakePhotoFromStyle()">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 10C4 6.69 6.69 4 10 4C13.31 4 16 6.69 16 10C16 13.31 13.31 16 10 16" stroke="#667eea" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M10 2V6M10 2L8 4M10 2L12 4" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="retake-photo-text">Retake Photo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Page -->
+    <div id="confirmation-page" class="container" style="display: none;">
+        <div class="consent-card">
+            <div class="consent-icon" style="background: #34d399;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="20" fill="#34d399"/>
+                    <path d="M16 20L18 22L24 16" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            
+            <h2 class="consent-title" id="confirmation-title" style="color: #059669;">Confirm Submission</h2>
+            <p class="consent-description" id="confirmation-description">Please review your information before submitting:</p>
+            <p id="confirmation-form-alert" class="form-alert" role="alert"></p>
+            
+            <div class="submission-details">
+                <div class="detail-row">
+                    <span class="detail-label" id="confirm-name-label">Name:</span>
+                    <span class="detail-value" id="confirm-name"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" id="confirm-email-label">Email:</span>
+                    <span class="detail-value" id="confirm-email"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" id="confirm-questions-label">Questions Answered:</span>
+                    <span class="detail-value" id="confirm-questions"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" id="confirm-theme-label">Theme:</span>
+                    <span class="detail-value" id="confirm-theme"></span>
+                </div>
+                <!-- Confirmation retention row required by updateConfirmationDetails - changes made by nick -->
+                <div class="detail-row">
+                    <span class="detail-label" id="confirm-retention-label">Data Retention:</span>
+                    <span class="detail-value" id="confirm-retention"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" id="confirm-pledge-label">Pledge:</span>
+                    <span class="detail-value" id="confirm-pledge"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" id="confirm-photo-label">Photo:</span>
+                    <span class="detail-value" id="confirm-photo-ready">✅ Ready to be uploaded</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" id="confirm-email-photo-label">Email Photo:</span>
+                    <span class="detail-value" id="confirm-email-photo-ready">✅ Will be sent to your email</span>
+                </div>
+            </div>
+            
+            <div class="privacy-notice" style="background: #fef3c7; border-left: 3px solid #f59e0b;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 2L3 5V8C3 11 5.5 13.5 8 14C10.5 13.5 13 11 13 8V5L8 2Z" fill="#f59e0b"/>
+                </svg>
+                <p id="confirmation-note-text" style="color: #92400e;">💡 You can go back to change the theme if needed</p>
+            </div>
+            
+            <!-- Final lost and found reminder - changes made by nick -->
+            <!-- <div class="lost-found-reminder">
+                <div>
+                    <strong>Did you lose or find something during your visit?</strong>
+                    <p>Report it now without losing your feedback progress.</p>
+                </div>
+                <button type="button" onclick="openLostFoundModal()">Report Lost Item</button>
+            </div>-->
+
+            <div style="display: flex; gap: 15px;">
+                <button class="consent-button" onclick="finalSubmit()" style="flex: 1; background: #34d399;">
+                    <span id="submit-feedback-text">Submit Feedback</span>
+                </button>
+                <button class="secondary-button" onclick="goBackToStyle()" style="flex: 1;">
+                    <span id="back-from-confirmation-text">Back</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thank You Page -->
+    <div id="thankyou-page" class="container" style="display: none;">
+        <div class="consent-card">
+            <div style="font-size: 80px; margin-bottom: 20px;">🌳</div>
+            
+            <h2 class="consent-title" id="thankyou-title" style="color: #059669;">Thank You! ☀️</h2>
+            
+            <p id="thankyou-message" style="font-size: 16px; color: #059669; margin: 30px 0; line-height: 1.8;">
+                Your feedback has been recorded and a new leaf has been added to our digital tree!
+            </p>
+
+            <section id="celebration-moment" class="celebration-moment" aria-label="Your ESG contribution celebration">
+                <div class="celebration-burst" aria-hidden="true"></div>
+
+                <div class="celebration-stage">
+                    <div class="celebration-badge-reveal">
+                        <span class="celebration-badge-ring"></span>
+                        <span id="celebration-badge-name" class="celebration-badge-name">Feedback Contributor</span>
+                        <span id="celebration-badge-caption" class="celebration-badge-caption">Badge unlocked</span>
+                    </div>
+
+                    <div class="celebration-tree-wrap">
+                        <span class="celebration-tree-target" aria-hidden="true"></span>
+                        <span class="celebration-leaf-trail trail-one" aria-hidden="true"></span>
+                        <span class="celebration-leaf-trail trail-two" aria-hidden="true"></span>
+                        <div id="celebration-flying-leaf" class="celebration-flying-leaf"></div>
+                        <img class="celebration-tree" src="/assets/Tree/stage4.png" alt="Digital tree preview">
+                        <div id="celebration-tree-leaves" class="celebration-tree-leaves" aria-hidden="true"></div>
+                    </div>
+                </div>
+
+                <div class="celebration-impact-grid">
+                    <div class="celebration-impact-item">
+                        <span id="celebration-month-pledges">--</span>
+                        <small>pledges this month</small>
+                    </div>
+                    <div class="celebration-impact-item">
+                        <span id="celebration-total-pledges">--</span>
+                        <small>total pledges</small>
+                    </div>
+                    <div class="celebration-impact-item">
+                        <span id="celebration-tree-count">--</span>
+                        <small>tree leaves</small>
+                    </div>
+                </div>
+
+                <div class="celebration-keepsake">
+                    <img id="celebration-photo" alt="Your processed keepsake photo">
+                    <div>
+                        <strong id="celebration-keepsake-title">Your keepsake is ready</strong>
+                        <p id="celebration-keepsake-copy">Your photo and ESG contribution are now part of the kiosk story.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="journey-passport" class="journey-passport" aria-label="Visitor journey passport">
+                <div class="passport-header">
+                    <span>Visitor Journey Passport</span>
+                    <strong id="passport-title">Your kiosk visit is complete</strong>
+                </div>
+                <div class="passport-stamps">
+                    <div id="passport-feedback-stamp" class="passport-stamp complete">
+                        <span class="passport-icon"><i class="fa-solid fa-check"></i></span>
+                        <span>
+                            <strong>Feedback submitted</strong>
+                            <small id="passport-feedback-detail">Your answers were recorded.</small>
+                        </span>
+                    </div>
+                    <div id="passport-pledge-stamp" class="passport-stamp complete">
+                        <span class="passport-icon"><i class="fa-solid fa-pen"></i></span>
+                        <span>
+                            <strong id="passport-pledge-title">Pledge made</strong>
+                            <small id="passport-pledge-detail">Your action joined the pledgeboard.</small>
+                        </span>
+                    </div>
+                    <div id="passport-badge-stamp" class="passport-stamp complete">
+                        <span class="passport-icon"><i class="fa-solid fa-award"></i></span>
+                        <span>
+                            <strong id="passport-badge-title">Badge earned</strong>
+                            <small id="passport-badge-detail">Feedback Contributor unlocked.</small>
+                        </span>
+                    </div>
+                    <div id="passport-tree-stamp" class="passport-stamp complete">
+                        <span class="passport-icon"><i class="fa-solid fa-tree"></i></span>
+                        <span>
+                            <strong>Tree leaf added</strong>
+                            <small id="passport-tree-detail">Your leaf is growing the ESG tree.</small>
+                        </span>
+                    </div>
+                    <div id="passport-photo-stamp" class="passport-stamp complete">
+                        <span class="passport-icon"><i class="fa-solid fa-envelope"></i></span>
+                        <span>
+                            <strong id="passport-photo-title">Photo email queued</strong>
+                            <small id="passport-photo-detail">Your keepsake will arrive shortly.</small>
+                        </span>
+                    </div>
+                </div>
+                <div id="passport-history" class="passport-history" hidden>
+                    <div id="passport-summary" class="passport-summary"></div>
+                    <div>
+                        <strong class="passport-section-title">Collected badges</strong>
+                        <div id="passport-collected-badges" class="passport-badge-grid"></div>
+                    </div>
+                    <div>
+                        <strong class="passport-section-title">Recent visit stamps</strong>
+                        <div id="passport-recent-visits" class="passport-visit-list"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <div class="success-notice">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="10" cy="10" r="9" fill="#34d399"/>
+                    <path d="M6 10L8.5 12.5L14 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div>
+                    <strong id="email-sent-title" style="color: #059669;">Your RP memory photo has been sent to your email!</strong>
+                    <p id="email-sent-description" style="margin: 5px 0 0 0; color: #10b981;">Please check your inbox within the next minute</p>
+                </div>
+            </div>
+
+            <!-- Downloadable visitor keepsake fallback (DONE BY NICK) -->
+            <button type="button" class="keepsake-download-button" id="keepsake-download-btn" onclick="downloadVisitorKeepsake()" hidden>
+                <i class="fa-solid fa-download" aria-hidden="true"></i>
+                <span>Download Keepsake</span>
+            </button>
+            
+            <p id="thankyou-footer-text" style="font-size: 14px; color: #64748b; margin: 30px 0;">
+                Thank you for contributing to our sustainability journey at Republic Polytechnic!
+            </p>
+
+            <!-- Added by XY: social media sharing section for kiosk pledge visibility - done by XY -->
+            <div id="thankyou-share-section" class="social-share-section" style="margin-bottom: 20px; display: none;">
+                <h3 style="font-size: 18px; margin-bottom: 12px; color: #1f2937;">Share your pledge on social media</h3>
+                <p id="thankyou-share-status" style="font-size: 14px; color: #475569; margin-bottom: 16px; line-height: 1.6;">
+                    Invite others to join the sustainability movement after your thank-you email is queued.
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+                    <button type="button" onclick="sharePledge('twitter')"
+                        style="flex: 1 1 200px; min-width: 180px; padding: 14px 18px; border-radius: 16px; border: none; color: white; background: #1da1f2; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 12px 24px rgba(29,161,242,0.18);">
+                        <i class="fab fa-twitter"></i>
+                        Share on Twitter
+                    </button>
+                    <button type="button" onclick="sharePledge('whatsapp')"
+                        style="flex: 1 1 200px; min-width: 180px; padding: 14px 18px; border-radius: 16px; border: none; color: white; background: #25D366; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 12px 24px rgba(37,211,102,0.18);">
+                        <i class="fab fa-whatsapp"></i>
+                        Share on WhatsApp
+                    </button>
+                    <button type="button" onclick="sharePledge('instagram')"
+                        style="flex: 1 1 200px; min-width: 180px; padding: 14px 18px; border-radius: 16px; border: none; color: white; background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%); font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 12px 24px rgba(204,24,136,0.18);">
+                        <i class="fab fa-instagram"></i>
+                        Share on Instagram
+                    </button>
+                    <button type="button" onclick="copyShareText()"
+                        style="flex: 1 1 100%; min-width: 240px; padding: 14px 18px; border-radius: 16px; border: 1px solid #10B981; background: white; color: #047857; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 12px 24px rgba(15,23,42,0.08);">
+                        Copy Share Text
+                    </button>
+                </div>
+            </div>
+
+            <button class="consent-button" id="submit-another-btn" onclick="submitAnother()" style="background: #34d399;">
+                Submit Another Feedback
+            </button>
+            
+            <button class="pledgeboard-button" id="thankyou-pledgeboards-btn" onclick="viewPledgeboard()" style="margin-top: 15px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+                📜 View Pledgeboards
+            </button>
+        </div>
+    </div>
+    
+    <div id="idle-timeout-modal" class="idle-timeout-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="idle-timeout-title">
+        <div class="idle-timeout-card">
+            <div class="idle-timeout-icon">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <h2 id="idle-timeout-title">Still there?</h2>
+            <p>This kiosk will reset in <strong><span id="idle-countdown">10</span> seconds</strong> to protect your information.</p>
+            <div class="idle-timeout-actions">
+                <button type="button" class="consent-button" onclick="stayOnForm()">Keep Going</button>
+                <button type="button" class="secondary-button" onclick="returnToLandingPage()">Reset Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lost and found pop-up form - changes made by nick -->
+    <div id="lost-found-modal" class="lost-found-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="lost-found-title">
+        <form class="lost-found-card" id="lost-found-form" onsubmit="submitLostFoundReport(event)">
+            <div class="lost-found-header">
+                <div class="lost-found-icon">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div>
+                    <h2 id="lost-found-title">Lost &amp; Found</h2>
+                    <p>Your feedback progress is saved. Submit this short report, then return to the form.</p>
+                </div>
+            </div>
+
+            <div class="lost-found-choice" role="radiogroup" aria-label="Lost and found report type">
+                <label>
+                    <input type="radio" name="lost-found-type" value="lost" checked>
+                    <span>I lost an item</span>
+                </label>
+                <label>
+                    <input type="radio" name="lost-found-type" value="found">
+                    <span>I found an item</span>
+                </label>
+            </div>
+
+            <label class="lost-found-field">
+                <span>Item</span>
+                <input type="text" id="lost-found-item" maxlength="120" placeholder="e.g. water bottle, wallet, umbrella" required>
+            </label>
+
+            <label class="lost-found-field">
+                <span>Last seen / found location</span>
+                <input type="text" id="lost-found-location" maxlength="160" placeholder="e.g. Library entrance, Agora Hall" required>
+            </label>
+
+            <label class="lost-found-field">
+                <span>Contact email or phone</span>
+                <input type="text" id="lost-found-contact" maxlength="120" placeholder="So staff can follow up" required>
+            </label>
+
+            <label class="lost-found-field">
+                <span>Details</span>
+                <textarea id="lost-found-details" rows="3" maxlength="400" placeholder="Colour, brand, time, or any useful details"></textarea>
+            </label>
+
+            <!-- Optional item photo upload with preview (DONE BY NICK) -->
+            <label class="lost-found-field lost-found-photo-field">
+                <span>Item photo (optional)</span>
+                <input type="file" id="lost-found-photo" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
+            <div class="lost-found-photo-preview" id="lost-found-photo-preview" hidden>
+                <img id="lost-found-photo-preview-img" alt="Lost and found item preview">
+                <button type="button" class="secondary-button" onclick="clearLostFoundPhoto()">Remove Photo</button>
+            </div>
+
+            <!-- Offline sync status for Lost & Found reports (DONE BY NICK) -->
+            <div class="lost-found-sync-panel" id="lost-found-sync-panel" hidden>
+                <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+                <span id="lost-found-sync-status">No queued reports.</span>
+            </div>
+
+            <p id="lost-found-status" class="lost-found-status" role="status"></p>
+
+            <div class="lost-found-actions">
+                <button type="submit" class="consent-button">Submit Report</button>
+                <button type="button" class="secondary-button" onclick="closeLostFoundModal()">Return to Feedback</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- facial detection (Done by Yu Kang) -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="feedback.js?v=landing-cleanup-20260716"></script>
+</body>
+</html>

@@ -1,0 +1,493 @@
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+📡 Using first available IP: 10.177.3.64 (Wi-Fi)
+🔒 Using existing SSL certificates from certs/ folder
+✅ Email service reloaded using provider: gmail
+📧 Email service initialized successfully
+
+🌐 ============================================
+   FEEDBACK KIOSK SERVER
+============================================
+💻 Platform: Windows
+🔌 Bind Host: 0.0.0.0
+📡 Selected Interface: Wi-Fi
+📡 Selected IP: 10.177.3.64
+🚀 HTTPS: https://10.177.3.64:3000
+📊 Feedback: https://10.177.3.64:3000/feedback
+🏆 Pledgeboard: https://10.177.3.64:3000/pledgeboard
+🌳 Tree: https://10.177.3.64:3000/tree
+🌳 3D Tree: https://10.177.3.64:3000/3dTree
+⚙️  Admin: https://10.177.3.64:3000/admin
+📦 Data Export: https://10.177.3.64:3000/api/admin/data-export
+📅 Started: 16/07/2026, 3:23:33 pm
+🌏 Timezone: Singapore (UTC+8)
+🗄️  Database: MySQL (dp_kiosk_db)
+🔐 SSL Certificates: C:\Users\24047742\OneDrive - Republic Polytechnic\Team Project FYP\IIP_Kiosk_Project-1\backend\certs/
+============================================
+
+🌐 Available Network Interfaces:
+   → 10.177.3.64 (Wi-Fi) [10.177.3.64/19]
+     192.168.233.1 (VMware Network Adapter VMnet1) [192.168.233.1/24]
+     192.168.48.1 (VMware Network Adapter VMnet8) [192.168.48.1/24]
+
+📱 Mobile Access (QR Code URLs):
+   Feedback: https://10.177.3.64:3000/feedback
+   Pledgeboard: https://10.177.3.64:3000/pledgeboard
+   QR API: https://10.177.3.64:3000/api/generate-qr
+
+💡 Windows Tips:
+   • Use start-simple.bat for easy testing
+   • Check firewall for ports 3000-3002
+   • For production, use Linux with systemd
+============================================
+
+
+🚀 ============================================
+   DATA RETENTION CLEANUP SYSTEM
+============================================
+⏰ Cleanup Schedule:
+   FEEDBACK (temporary retention: 7 days):
+     1. On server startup (in 5 seconds)
+     2. Every 6 hours while running
+   AUDIT LOGS (1-year retention):
+     1. On server startup (in 10 seconds)
+     2. Every 24 hours while running
+   3. Manual trigger via admin panel
+============================================
+
+✅ Connected to MySQL database: dp_kiosk_db
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🔄 Running initial feedback cleanup on server startup...
+
+🧹 ============================================
+   DATA RETENTION CLEANUP STARTED
+   Time: 16/07/2026, 3:23:38 pm
+============================================
+
+📋 Found 9 feedback entries with temporary retention (7 days)
+
+📅 Checking: ID 1, Created: 12/05/2026, Days old: 64, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 1, User: warren
+   Created: 12/05/2026
+📅 Checking: ID 2, Created: 12/05/2026, Days old: 64, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 2, User: warren
+   Created: 12/05/2026
+📅 Checking: ID 3, Created: 12/05/2026, Days old: 64, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 3, User: warren
+   Created: 12/05/2026
+📅 Checking: ID 4, Created: 12/05/2026, Days old: 64, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 4, User: warren
+   Created: 12/05/2026
+📅 Checking: ID 5, Created: 14/05/2026, Days old: 63, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 5, User: mr wong
+   Created: 14/05/2026
+📅 Checking: ID 6, Created: 19/05/2026, Days old: 57, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 6, User: wentao
+   Created: 19/05/2026
+📅 Checking: ID 9, Created: 19/05/2026, Days old: 57, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 9, User: wentao
+   Created: 19/05/2026
+📅 Checking: ID 10, Created: 19/05/2026, Days old: 57, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 10, User: wentao
+   Created: 19/05/2026
+📅 Checking: ID 11, Created: 19/05/2026, Days old: 57, Retention: 7 days
+
+⏰ EXPIRED - Feedback ID: 11, User: wentao
+   Created: 19/05/2026
+
+============================================
+📊 CLEANUP SUMMARY:
+   • Total checked: 9
+   • Expired & cleaned: 9
+   • Still valid: 0
+============================================
+
+   ✅ Cleared photo paths in database
+   ✅ Cleared photo paths in database
+   ✅ Cleared photo paths in database
+   ✅ Cleared photo paths in database
+   ✅ Cleared photo paths in database
+   ✅ Cleared photo paths in database
+   ✅ Cleared photo paths in database
+   ✅ Cleared photo paths in database
+   ✅ Cleared photo paths in database
+   ✅ Cleared encrypted email for user 1
+   ✅ Cleared encrypted email for user 2
+   ✅ Cleared encrypted email for user 4
+   ✅ Cleared encrypted email for user 7
+   ✅ Cleared encrypted email for user 2
+   ✅ Cleared encrypted email for user 2
+   ✅ Cleared encrypted email for user 3
+   ✅ Cleared encrypted email for user 7
+   ✅ Cleared encrypted email for user 7
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🔄 Running initial audit log cleanup on server startup...
+
+🗂️  ============================================
+   AUDIT LOG CLEANUP STARTED (1 YEAR RETENTION)
+   Time: 16/07/2026, 3:23:43 pm
+============================================
+📅 Deleting audit logs older than 1 year (using MySQL NOW())
+📋 No audit logs older than 1 year found
+============================================
+
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+📋 Fetching active questions for feedback form...
+🎨 Fetching overlay data for feedback form...
+✅ Found 3 active questions for feedback form
+✅ Found 6 overlays for feedback form
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+🌳 TreeRoutes: /api/tree GET request received
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)
+🌳 TreeRoutes: /api/tree GET request received
+✅ VIP rows fetched: 0
+✅ Tree leaves fetched: 10 (1 flagged hidden)

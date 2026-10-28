@@ -1,0 +1,86 @@
+<!-- ============================================================
+     XY CHANGE SUMMARY (DONE BY XY)
+     ============================================================
+
+     1. YEAR REVIEW BOOK UI
+        yearReviewToggle              - Corner button that opens the yearly review book (DONE BY XY)
+        yearReviewBook                - Flip-book panel for completed yearly trees (DONE BY XY)
+        bookTurnSheet                 - Animated page sheet used during year flipping (DONE BY XY)
+
+     2. INTERACTIVE LEAF DETAIL UI
+        leafDetailCard                - Small side card opened when a visitor leaf is clicked (DONE BY XY)
+        leafDetailPrivacy             - Shows whether the visitor name is hidden or public (DONE BY XY)
+        leafDetailSnippet             - Displays the pledge snippet returned by /api/tree (DONE BY XY)
+
+     FIND COMMAND
+        rg -n "XY CHANGE SUMMARY|DONE BY XY" frontend backend
+     ============================================================ -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESG Digital Tree</title>
+    <link rel="stylesheet" href="/tree/tree.css?v=badge-colors-20260716-4">
+    <script src="/tree/tree.js?v=badge-colors-20260716-4" defer></script>
+</head>
+<body>
+    <div id="treeContainer">
+        <div class="tree-title">
+            <h1 id="treeTitle">🌳 ESG Digital Tree</h1>
+            <p id="treeSubtitle">Growing with every visitor's contribution this year</p>
+        </div>
+
+        <button class="year-review-toggle" id="yearReviewToggle" type="button" aria-expanded="false" aria-controls="yearReviewBook">
+            Year Review
+        </button>
+
+        <aside class="year-review-book" id="yearReviewBook" aria-label="Year review book" aria-hidden="true">
+            <div class="book-topline">
+                <span class="book-label">Year Review</span>
+                <div class="book-actions">
+                    <button class="book-live-button" id="bookLiveButton" type="button">Live</button>
+                    <button class="book-close-button" id="bookCloseButton" type="button" aria-label="Close year review">×</button>
+                </div>
+            </div>
+            <div class="book-page">
+                <button class="book-nav" id="bookPrevButton" type="button" aria-label="Previous year">‹</button>
+                <div class="book-turn-sheet" id="bookTurnSheet" aria-hidden="true">
+                    <span id="bookTurnYear">----</span>
+                </div>
+                <div class="book-content">
+                    <div class="book-year" id="bookYear">----</div>
+                    <div class="book-count" id="bookCount">0 leaves</div>
+                    <div class="review-tree-preview" id="reviewTreePreview"></div>
+                    <button class="book-view-button" id="bookViewButton" type="button">View Tree</button>
+                </div>
+                <button class="book-nav" id="bookNextButton" type="button" aria-label="Next year">›</button>
+            </div>
+        </aside>
+        
+        <!-- image paths now root-relative -->
+        <img id="treeImage" src="/assets/Tree/stage4.png" alt="ESG Tree">
+        <img id="treeImageLeaves" src="/assets/Tree/stage4leaves.png" alt="ESG Tree Leaves">
+        
+        <div id="ovalOverlay"></div>
+        <div id="leavesContainer"></div>
+        
+        <div class="loading" id="loadingMessage">
+            Loading tree data...
+        </div>
+
+        <aside class="leaf-detail-card" id="leafDetailCard" aria-live="polite" aria-hidden="true">
+            <button class="leaf-detail-close" id="leafDetailClose" type="button" aria-label="Close leaf details">×</button>
+            <p class="leaf-detail-kicker" id="leafDetailPrivacy">Leaf details</p>
+            <h2 id="leafDetailName">Anonymous visitor</h2>
+            <div class="leaf-detail-meta">
+                <span id="leafDetailBadge">Feedback Contributor</span>
+                <span id="leafDetailDate">Today</span>
+            </div>
+            <p class="leaf-detail-quote" id="leafDetailSnippet">Select a leaf to view its pledge snippet.</p>
+        </aside>
+    </div>
+
+</body>
+</html>

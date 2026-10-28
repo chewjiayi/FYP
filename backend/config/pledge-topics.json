@@ -1,0 +1,26 @@
+[
+  {
+    "value": "climate-change",
+    "label": "Climate Change"
+  },
+  {
+    "value": "renewable-energy",
+    "label": "Renewable Energy"
+  },
+  {
+    "value": "sustainable-living",
+    "label": "Sustainable Living"
+  },
+  {
+    "value": "ocean-conservation",
+    "label": "Ocean Conservation"
+  },
+  {
+    "value": "ethical-governance",
+    "label": "Ethical Governance"
+  },
+  {
+    "value": "community-impact",
+    "label": "Community Impact"
+  }
+]

@@ -1,0 +1,1059 @@
+/* Pledgeboard.css - Pledgeboard Display Styles */
+
+/* ============================================================
+TABLE OF CONTENTS
+============================================================
+
+1. ROOT VARIABLES
+   - CSS custom properties for colors, shadows, and transitions (DONE BY PRETI)
+
+2. GLOBAL STYLES
+   - Universal box-sizing reset (DONE BY PRETI)
+   - Base font, background, and layout settings (DONE BY PRETI)
+
+3. CONTAINER & HEADER
+   - Main wrapper with max-width and padding (DONE BY PRETI)
+   - Gradient header with rounded corners and shadow (DONE BY PRETI)
+   - Positioned back navigation button (DONE BY PRETI)
+   - Hover state with background change and slide effect (DONE BY PRETI)
+   - Centered header text container (DONE BY PRETI)
+   - Main header title styling (DONE BY PRETI)
+   - Header subtitle styling (DONE BY PRETI)
+
+4. SECTION TITLES
+   - Section heading with flex layout (DONE BY PRETI)
+
+4.5 SEARCH SECTION
+   - Search area wrapper with spacing (DONE BY PRETI)
+   - Flex container for search input and button (DONE BY PRETI)
+   - Search text input with border and focus styles (DONE BY PRETI)
+   - Focus state with primary color border and shadow (DONE BY PRETI)
+   - Clear search button styling (DONE BY PRETI)
+   - Hover state for clear button (DONE BY PRETI)
+   - Helper text below search input (DONE BY PRETI)
+
+5. TOP 3 SECTION
+   - Container for top 3 pledges (DONE BY PRETI)
+   - Grid layout for top pledge cards (DONE BY PRETI)
+   - Individual top pledge card styling (DONE BY PRETI)
+   - Hover effect with lift animation (DONE BY PRETI)
+   - Gold medal styling for 1st place (DONE BY PRETI)
+   - Silver medal styling for 2nd place (DONE BY PRETI)
+   - Bronze medal styling for 3rd place (DONE BY PRETI)
+   - Medal emoji positioning (DONE BY PRETI)
+   - Rank badge styling (DONE BY PRETI)
+   - Gold rank badge colors (DONE BY PRETI)
+   - Silver rank badge colors (DONE BY PRETI)
+   - Bronze rank badge colors (DONE BY PRETI)
+   - Author name styling (DONE BY PRETI)
+   - Pledge content text styling (DONE BY PRETI)
+   - Footer section with like button and date (DONE BY PRETI)
+   - Interactive like button styling (DONE BY PRETI)
+   - Hover state with color change and scale (DONE BY PRETI)
+   - Active liked state styling (DONE BY PRETI)
+   - Like count number styling (DONE BY PRETI)
+   - Date display styling (DONE BY PRETI)
+
+6. ALL PLEDGES SECTION
+   - Container for all pledges list (DONE BY PRETI)
+   - Scrollable list container (DONE BY PRETI)
+   - Custom scrollbar width (DONE BY PRETI)
+   - Scrollbar track styling (DONE BY PRETI)
+   - Scrollbar thumb styling (DONE BY PRETI)
+   - Individual pledge card in list (DONE BY PRETI)
+   - Hover effect with shadow and slide (DONE BY PRETI)
+   - Header section within pledge card (DONE BY PRETI)
+   - Author name in list view (DONE BY PRETI)
+   - Pledge text in list view (DONE BY PRETI)
+
+7. LOADING & EMPTY STATES
+   - Loading screen container (DONE BY PRETI)
+   - Animated loading spinner (DONE BY PRETI)
+   - Rotation animation for spinner (DONE BY PRETI)
+   - Empty state message container (DONE BY PRETI)
+   - Large emoji icon for empty state (DONE BY PRETI)
+   - Empty state heading (DONE BY PRETI)
+   - Empty state description text (DONE BY PRETI)
+   - Call-to-action button styling (DONE BY PRETI)
+   - CTA button hover effect (DONE BY PRETI)
+
+8. RESPONSIVE DESIGN
+   - Tablet breakpoint styles (DONE BY PRETI)
+   - Mobile breakpoint styles (DONE BY PRETI)
+
+============================================================ */
+
+/* ==================== 1. ROOT VARIABLES ==================== */
+/* CSS custom properties for colors, shadows, and transitions */
+:root {
+    --primary-color: #6366F1;
+    --primary-dark: #4F46E5;
+    --secondary-color: #10B981;
+    --accent-color: #F59E0B;
+    --background: #F8FAFC;
+    --surface: #FFFFFF;
+    --text-primary: #1E293B;
+    --text-secondary: #64748B;
+    --border: #E2E8F0;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
+/* ==================== 2. GLOBAL STYLES ==================== */
+/* Universal box-sizing reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Base font, background, and layout settings */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--background);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ==================== 3. CONTAINER & HEADER ==================== */
+/* Main wrapper with max-width and padding */
+.pledgeboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Gradient header with rounded corners and shadow */
+.pledgeboard-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-lg);
+    color: white;
+    position: relative;
+}
+
+/* Positioned back navigation button */
+.back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+/* Hover state with background change and slide effect */
+.back-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateX(-5px);
+}
+
+/* Centered header text container */
+.header-content {
+    text-align: center;
+    margin-top: 30px;
+}
+
+/* Main header title styling */
+.header-content h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+/* Header subtitle styling */
+.header-content p {
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+/* ==================== 4. SECTION TITLES ==================== */
+/* Section heading with flex layout */
+.section-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ==================== 4.5 SEARCH SECTION ==================== */
+/* Search area wrapper with spacing */
+.search-section {
+    margin-bottom: 40px;
+    padding: 0 20px;
+}
+
+/* Flex container for search input and button */
+.search-container {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Search text input with border and focus styles */
+.search-input {
+    flex: 1;
+    padding: 15px 20px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 16px;
+    transition: var(--transition);
+    background: var(--surface);
+}
+
+/* Focus state with primary color border and shadow */
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Clear search button styling */
+.clear-search-btn {
+    padding: 15px 25px;
+    background: var(--border);
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+/* Hover state for clear button */
+.clear-search-btn:hover {
+    background: #cbd5e1;
+    color: var(--text-primary);
+}
+
+/* Helper text below search input */
+.search-hint {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* ==================== 5. TOP 3 SECTION ==================== */
+/* Container for top 3 pledges */
+.top-three-section {
+    margin-bottom: 40px;
+}
+
+/* Grid layout for top pledge cards */
+.top-three-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+/* Individual top pledge card styling */
+.top-pledge-card {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover effect with lift animation */
+.top-pledge-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Gold medal styling for 1st place */
+.top-pledge-card.rank-1 {
+    border-color: #FFD700;
+    background: linear-gradient(135deg, #FFF9E6, #FFFFFF);
+}
+
+/* Silver medal styling for 2nd place */
+.top-pledge-card.rank-2 {
+    border-color: #C0C0C0;
+    background: linear-gradient(135deg, #F5F5F5, #FFFFFF);
+}
+
+/* Bronze medal styling for 3rd place */
+.top-pledge-card.rank-3 {
+    border-color: #CD7F32;
+    background: linear-gradient(135deg, #FFF5E6, #FFFFFF);
+}
+
+/* Medal emoji positioning */
+.medal-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 40px;
+    opacity: 0.8;
+}
+
+/* Rank badge styling */
+.pledge-rank {
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+/* Gold rank badge colors */
+.rank-1 .pledge-rank {
+    background: #FFD700;
+    color: #B8860B;
+}
+
+/* Silver rank badge colors */
+.rank-2 .pledge-rank {
+    background: #C0C0C0;
+    color: #696969;
+}
+
+/* Bronze rank badge colors */
+.rank-3 .pledge-rank {
+    background: #CD7F32;
+    color: #8B4513;
+}
+
+/* Author name styling */
+.pledge-author {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+/* Pledge content text styling */
+.pledge-text {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 15px;
+    min-height: 60px;
+}
+
+/* Footer section with like button and date */
+.pledge-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+
+/* Interactive like button styling */
+.like-button {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Hover state with color change and scale */
+.like-button:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Active liked state styling */
+.like-button.liked {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Like count number styling */
+.like-count {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* Date display styling */
+.pledge-date {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ==================== 6. ALL PLEDGES SECTION ==================== */
+/* Container for all pledges list */
+.all-pledges-section {
+    margin-bottom: 40px;
+}
+
+/* Scrollable list container */
+.pledges-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Custom scrollbar width */
+.pledges-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+/* Scrollbar track styling */
+.pledges-list::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+/* Scrollbar thumb styling */
+.pledges-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+/* Individual pledge card in list */
+.pledge-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Hover effect with shadow and slide */
+.pledge-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateX(5px);
+}
+
+/* Header section within pledge card */
+.pledge-card .pledge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+/* Author name in list view */
+.pledge-card .pledge-author {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Pledge text in list view */
+.pledge-card .pledge-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    min-height: auto;
+}
+
+/* ==================== 7. LOADING & EMPTY STATES ==================== */
+/* Loading screen container */
+.loading-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+/* Animated loading spinner */
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--border);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+/* Rotation animation for spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Empty state message container */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+/* Large emoji icon for empty state */
+.empty-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+/* Empty state heading */
+.empty-state h3 {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+/* Empty state description text */
+.empty-state p {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+}
+
+/* Call-to-action button styling */
+.cta-button {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+/* CTA button hover effect */
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* ==================== 8. RESPONSIVE DESIGN ==================== */
+/* Tablet breakpoint styles */
+@media (max-width: 768px) {
+    .pledgeboard-container {
+        padding: 15px;
+    }
+
+    .pledgeboard-header {
+        padding: 20px;
+    }
+
+    .back-button {
+        top: 15px;
+        left: 15px;
+        padding: 8px 16px;
+        font-size: 12px;
+    }
+
+    .header-content {
+        margin-top: 50px;
+    }
+
+    .header-content h1 {
+        font-size: 28px;
+    }
+
+    .header-content p {
+        font-size: 14px;
+    }
+
+    .top-three-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-title {
+        font-size: 20px;
+    }
+
+    .pledges-list {
+        max-height: 500px;
+    }
+}
+
+/* Mobile breakpoint styles */
+@media (max-width: 480px) {
+    .pledgeboard-header {
+        padding: 15px;
+    }
+
+    .header-content h1 {
+        font-size: 24px;
+    }
+
+    .top-pledge-card {
+        padding: 20px;
+    }
+
+    .medal-badge {
+        font-size: 30px;
+    }
+}
+
+/* ==================== ESG KIOSK THEME REFRESH ==================== */
+
+:root {
+    --primary-color: #8bd7c1;
+    --primary-dark: #0f766e;
+    --secondary-color: #22c55e;
+    --accent-color: #facc15;
+    --background: #061218;
+    --surface: rgba(10, 19, 26, 0.8);
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --border: rgba(255, 255, 255, 0.14);
+    --shadow-sm: 0 10px 24px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.26);
+    --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.34);
+}
+
+body {
+    background:
+        linear-gradient(135deg, rgba(6, 18, 24, 0.92), rgba(18, 35, 29, 0.86)),
+        url('/assets/Tree/BackGround.png') center / cover no-repeat fixed;
+    color: var(--text-primary);
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 18% 18%, rgba(139, 215, 193, 0.24), transparent 30%),
+        radial-gradient(circle at 82% 10%, rgba(250, 204, 21, 0.14), transparent 28%),
+        linear-gradient(180deg, rgba(4, 12, 18, 0.1), rgba(4, 12, 18, 0.5));
+}
+
+.pledgeboard-container {
+    max-width: 1280px;
+    padding: 28px;
+}
+
+.pledgeboard-header,
+.search-section,
+.top-three-section,
+.all-pledges-section,
+.empty-state {
+    background: rgba(10, 19, 26, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(18px);
+}
+
+.pledgeboard-header {
+    min-height: 230px;
+    padding: 32px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 20%, rgba(139, 215, 193, 0.24), transparent 36%),
+        linear-gradient(135deg, rgba(10, 19, 26, 0.88), rgba(15, 118, 110, 0.46));
+}
+
+.pledgeboard-header::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -120px;
+    width: min(680px, 80vw);
+    height: 260px;
+    transform: translateX(-50%);
+    opacity: 0.26;
+    background: url('/assets/Tree/stage4.png') center bottom / contain no-repeat;
+    pointer-events: none;
+}
+
+.back-button {
+    z-index: 1;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.header-content {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 42px auto 0;
+}
+
+.header-content h1 {
+    font-size: clamp(36px, 5vw, 66px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #ffffff, #8bd7c1 64%, #facc15);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.header-content p {
+    color: #d7f7ee;
+    margin-top: 14px;
+    font-size: 18px;
+}
+
+.search-section,
+.top-three-section,
+.all-pledges-section {
+    padding: 22px;
+    margin-bottom: 24px;
+}
+
+.search-section {
+    margin-top: -12px;
+}
+
+.search-input {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    color: #f8fafc;
+}
+
+.search-input::placeholder {
+    color: #94a3b8;
+}
+
+.search-input:focus {
+    border-color: #8bd7c1;
+    box-shadow: 0 0 0 3px rgba(139, 215, 193, 0.16);
+}
+
+.clear-search-btn,
+.cta-button {
+    border-radius: 8px;
+    background: linear-gradient(135deg, #16a34a, #0f766e);
+    color: white;
+    box-shadow: 0 12px 30px rgba(22, 163, 74, 0.22);
+}
+
+.search-hint {
+    color: #cbd5e1;
+}
+
+.section-title {
+    color: #f8fafc;
+    letter-spacing: 0;
+}
+
+.top-three-grid {
+    gap: 18px;
+}
+
+.top-pledge-card,
+.pledge-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    box-shadow: none;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.top-pledge-card::before,
+.pledge-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: linear-gradient(180deg, #22c55e, #8bd7c1, #facc15);
+}
+
+.top-pledge-card:hover,
+.pledge-card:hover {
+    border-color: rgba(139, 215, 193, 0.5);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+}
+
+.top-pledge-card.rank-1,
+.top-pledge-card.rank-2,
+.top-pledge-card.rank-3 {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
+        rgba(10, 19, 26, 0.74);
+}
+
+.top-pledge-card.rank-1 {
+    border-color: rgba(250, 204, 21, 0.78);
+}
+
+.top-pledge-card.rank-2 {
+    border-color: rgba(203, 213, 225, 0.62);
+}
+
+.top-pledge-card.rank-3 {
+    border-color: rgba(251, 146, 60, 0.62);
+}
+
+.pledge-rank {
+    border-radius: 999px;
+}
+
+.rank-1 .pledge-rank {
+    background: rgba(250, 204, 21, 0.18);
+    color: #fde68a;
+}
+
+.rank-2 .pledge-rank {
+    background: rgba(203, 213, 225, 0.16);
+    color: #e2e8f0;
+}
+
+.rank-3 .pledge-rank {
+    background: rgba(251, 146, 60, 0.16);
+    color: #fed7aa;
+}
+
+.pledge-author {
+    color: #f8fafc;
+}
+
+.pledge-text,
+.pledge-date,
+.like-count,
+.empty-state p,
+.loading-state {
+    color: #cbd5e1;
+}
+
+.pledge-footer {
+    border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+.like-button {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    color: #f8fafc;
+}
+
+.like-button:hover,
+.like-button.liked {
+    background: linear-gradient(135deg, #16a34a, #0f766e);
+    border-color: #8bd7c1;
+}
+
+.pledges-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.pledges-list::-webkit-scrollbar-thumb {
+    background: #8bd7c1;
+}
+
+.spinner {
+    border-color: rgba(255, 255, 255, 0.14);
+    border-top-color: #8bd7c1;
+}
+
+@media (max-width: 768px) {
+    .pledgeboard-container {
+        padding: 16px;
+    }
+
+    .pledgeboard-header {
+        min-height: 220px;
+    }
+
+    .search-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* ==================== SUSTAINABILITY THEME REFINEMENT ==================== */
+
+:root {
+    --primary-color: #4a7c59;
+    --primary-dark: #2f6f45;
+    --secondary-color: #7fb069;
+    --accent-color: #b7d99a;
+    --background: #ecfdf5;
+    --surface: rgba(255, 255, 248, 0.9);
+    --text-primary: #18392b;
+    --text-secondary: #496656;
+    --border: rgba(74, 124, 89, 0.22);
+    --shadow-sm: 0 8px 18px rgba(24, 57, 43, 0.1);
+    --shadow-md: 0 16px 34px rgba(24, 57, 43, 0.14);
+    --shadow-lg: 0 22px 48px rgba(24, 57, 43, 0.18);
+}
+
+body {
+    background:
+        linear-gradient(135deg, rgba(236, 253, 245, 0.94), rgba(240, 253, 244, 0.9)),
+        url('/assets/Tree/BackGround.png') center / cover no-repeat fixed;
+    color: var(--text-primary);
+}
+
+body::before {
+    background:
+        radial-gradient(circle at 16% 18%, rgba(34, 197, 94, 0.16), transparent 32%),
+        radial-gradient(circle at 86% 12%, rgba(132, 204, 22, 0.14), transparent 28%),
+        linear-gradient(180deg, rgba(236, 253, 245, 0.24), rgba(220, 252, 231, 0.6));
+}
+
+.pledgeboard-header,
+.search-section,
+.top-three-section,
+.all-pledges-section,
+.empty-state {
+    background: rgba(255, 255, 248, 0.9);
+    border-color: rgba(74, 124, 89, 0.2);
+    box-shadow: var(--shadow-md);
+}
+
+.pledgeboard-header {
+    background:
+        radial-gradient(circle at 50% 18%, rgba(127, 176, 105, 0.24), transparent 38%),
+        linear-gradient(135deg, rgba(255, 255, 248, 0.96), rgba(220, 252, 231, 0.86));
+}
+
+.pledgeboard-header::after {
+    opacity: 0.18;
+}
+
+.back-button {
+    background: rgba(74, 124, 89, 0.1);
+    border-color: rgba(74, 124, 89, 0.2);
+    color: #2f6f45;
+}
+
+.back-button:hover {
+    background: rgba(127, 176, 105, 0.2);
+}
+
+.header-content h1 {
+    background: linear-gradient(135deg, #18392b, #2f6f45 62%, #6f9f3f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.header-content p,
+.search-hint,
+.pledge-text,
+.pledge-date,
+.like-count,
+.empty-state p,
+.loading-state {
+    color: #496656;
+}
+
+.section-title,
+.pledge-author,
+.empty-state h3 {
+    color: #18392b;
+}
+
+.search-input {
+    background: rgba(255, 255, 248, 0.92);
+    border-color: rgba(74, 124, 89, 0.24);
+    color: #18392b;
+}
+
+.search-input::placeholder {
+    color: #789084;
+}
+
+.search-input:focus {
+    border-color: #7fb069;
+    box-shadow: 0 0 0 3px rgba(127, 176, 105, 0.2);
+}
+
+.clear-search-btn,
+.cta-button,
+.like-button:hover,
+.like-button.liked {
+    background: linear-gradient(135deg, #4a7c59, #2f6f45);
+    border-color: #7fb069;
+    color: #ffffff;
+    box-shadow: 0 12px 26px rgba(74, 124, 89, 0.2);
+}
+
+.top-pledge-card,
+.pledge-card {
+    background: rgba(247, 252, 242, 0.88);
+    border-color: rgba(74, 124, 89, 0.2);
+    box-shadow: var(--shadow-sm);
+}
+
+.top-pledge-card::before,
+.pledge-card::before {
+    background: linear-gradient(180deg, #4a7c59, #7fb069, #b7d99a);
+}
+
+.top-pledge-card:hover,
+.pledge-card:hover {
+    border-color: #7fb069;
+    box-shadow: var(--shadow-md);
+}
+
+.top-pledge-card.rank-1,
+.top-pledge-card.rank-2,
+.top-pledge-card.rank-3 {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 248, 0.96), rgba(220, 252, 231, 0.72)),
+        rgba(247, 252, 242, 0.9);
+}
+
+.top-pledge-card.rank-1,
+.top-pledge-card.rank-2,
+.top-pledge-card.rank-3 {
+    border-color: rgba(127, 176, 105, 0.44);
+}
+
+.rank-1 .pledge-rank,
+.rank-2 .pledge-rank,
+.rank-3 .pledge-rank {
+    background: rgba(220, 252, 231, 0.8);
+    color: #2f6f45;
+}
+
+.pledge-footer {
+    border-top-color: rgba(74, 124, 89, 0.16);
+}
+
+.like-button {
+    background: rgba(255, 255, 248, 0.92);
+    border-color: rgba(74, 124, 89, 0.24);
+    color: #2f6f45;
+}
+
+.pledges-list::-webkit-scrollbar-track {
+    background: rgba(74, 124, 89, 0.1);
+}
+
+.pledges-list::-webkit-scrollbar-thumb,
+.spinner {
+    border-top-color: #7fb069;
+}
+
+.pledges-list::-webkit-scrollbar-thumb {
+    background: #7fb069;
+}

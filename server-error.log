@@ -1,0 +1,16 @@
+
+(process:18988): GLib-GObject-CRITICAL **: 15:23:33.410: invalid unclassed type '(NULL)' in class cast to '(NULL)'
+
+(process:18988): GLib-GObject-CRITICAL **: 15:23:33.413: invalid unclassed type '(NULL)' in class cast to '(NULL)'
+
+(process:18988): GLib-GObject-CRITICAL **: 15:23:33.415: invalid unclassed type '(NULL)' in class cast to '(NULL)'
+
+(process:18988): GLib-GObject-CRITICAL **: 15:23:33.416: invalid unclassed type '(NULL)' in class cast to '(NULL)'
+
+(process:18988): GLib-GObject-CRITICAL **: 15:23:33.420: invalid unclassed type '(NULL)' in class cast to '(NULL)'
+
+(process:18988): GLib-GObject-CRITICAL **: 15:23:33.422: invalid unclassed type '(NULL)' in class cast to '(NULL)'
+
+(process:18988): GLib-GObject-CRITICAL **: 15:23:33.422: invalid unclassed type '(NULL)' in class cast to '(NULL)'
+
+(process:18988): GLib-GObject-CRITICAL **: 15:23:33.423: invalid unclassed type '(NULL)' in class cast to '(NULL)'

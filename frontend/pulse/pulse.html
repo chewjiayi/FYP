@@ -1,0 +1,127 @@
+<!--
+  XY CHANGE SUMMARY (DONE BY XY)
+  ============================================================
+
+  1. LIVE SCHOOL PULSE DASHBOARD
+     main.pulse-shell               - Added live dashboard layout for ESG pledge and badge activity (DONE BY XY)
+     section.metrics-grid           - Added pledge, tree leaf and campaign metric display (DONE BY XY)
+     section.tree-panel             - Added dashboard digital tree preview area (DONE BY XY)
+     public ultrawide layout        - Fits a 7m by 2m display without page scrolling (DONE BY XY)
+
+  2. PUBLIC ACCESS FLOW
+     pulse page                     - Public live-display page for visitors and hallway screens (DONE BY XY)
+
+  FIND COMMAND
+     rg -n "XY CHANGE SUMMARY|DONE BY XY" frontend backend
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live School Pulse</title>
+    <link rel="stylesheet" href="pulse.css">
+    <script src="pulse.js" defer></script>
+</head>
+<body>
+    <main class="pulse-shell">
+        <header class="pulse-header">
+            <div>
+                <p class="eyebrow">Live School Pulse</p>
+                <h1>Republic Polytechnic ESG Impact</h1>
+            </div>
+            <div class="clock-panel">
+                <span id="pulse-time">--:--</span>
+                <span id="pulse-date">Loading</span>
+            </div>
+        </header>
+
+        <section class="metrics-grid" aria-label="Live pledge metrics">
+            <article class="metric-tile">
+                <span class="metric-label">Pledges Today</span>
+                <strong id="pledges-today">0</strong>
+                <span class="metric-note">New commitments since midnight</span>
+            </article>
+            <article class="metric-tile">
+                <span class="metric-label">This Month</span>
+                <strong id="pledges-month">0</strong>
+                <span class="metric-note">Campaign pledges collected</span>
+            </article>
+            <article class="metric-tile">
+                <span class="metric-label">Digital Leaves</span>
+                <strong id="tree-leaves">0</strong>
+                <span class="metric-note">Visitors on the growing tree</span>
+            </article>
+            <article class="metric-tile">
+                <span class="metric-label">All-Time Pledges</span>
+                <strong id="total-pledges">0</strong>
+                <span class="metric-note">Active pledgeboard entries</span>
+            </article>
+        </section>
+
+        <section class="pulse-layout">
+            <section class="tree-panel" aria-label="Growing digital tree preview">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Growing Digital Tree</p>
+                        <h2>Every pledge adds momentum</h2>
+                    </div>
+                    <span id="last-updated" class="last-updated">Updating...</span>
+                </div>
+                <div class="tree-stage" id="pulse-tree">
+                    <img class="tree-base" src="/assets/Tree/stage4.png" alt="Digital tree">
+                    <div id="pulse-leaves" class="pulse-leaves"></div>
+                </div>
+            </section>
+
+            <aside class="side-stack">
+                <section class="progress-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">Current Campaign</p>
+                            <h2 id="campaign-title">Monthly pledge goal</h2>
+                        </div>
+                        <strong id="campaign-percent">0%</strong>
+                    </div>
+                    <div class="progress-track">
+                        <div id="campaign-bar" class="progress-bar"></div>
+                    </div>
+                    <p id="campaign-copy" class="progress-copy">0 of 100 pledges reached</p>
+                </section>
+
+                <section class="badge-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">Top Badge Earners</p>
+                            <h2>Recognition board</h2>
+                        </div>
+                    </div>
+                    <div id="badge-earners" class="badge-list"></div>
+                </section>
+            </aside>
+        </section>
+
+        <section class="bottom-grid">
+            <section class="pledge-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Newest Anonymous Pledges</p>
+                        <h2>Fresh commitments</h2>
+                    </div>
+                </div>
+                <div id="newest-pledges" class="pledge-feed"></div>
+            </section>
+
+            <section class="topic-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Badge Mix</p>
+                        <h2>What students care about</h2>
+                    </div>
+                </div>
+                <div id="badge-breakdown" class="topic-bars"></div>
+            </section>
+        </section>
+    </main>
+</body>
+</html>

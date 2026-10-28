@@ -1,0 +1,58 @@
+{
+  "feedback-completer": {
+    "subject": "Congratulations on Earning Your Feedback Contributor Badge!",
+    "message": "Thank you for sharing your feedback with the RP ESG Centre. Your comments help us improve the visitor experience.",
+    "highlights": [
+      "Your feedback supports better ESG learning experiences for future visitors.",
+      "Look out for the growing digital tree, where every contribution adds momentum."
+    ]
+  },
+  "climate-champion": {
+    "subject": "Congratulations on Earning Your Climate Champion Badge!",
+    "message": "Your pledge shows commitment to climate action and a lower-carbon future.",
+    "highlights": [
+      "Climate action starts with daily choices that reduce carbon impact.",
+      "Your digital tree leaf represents your support for a more resilient planet."
+    ]
+  },
+  "renewable-innovator": {
+    "subject": "Congratulations on Earning Your Renewable Innovator Badge!",
+    "message": "Your pledge supports cleaner energy choices and innovation for a more sustainable future.",
+    "highlights": [
+      "Renewable energy helps reduce reliance on carbon-heavy power sources.",
+      "Small energy-saving habits can build long-term impact across campus and home."
+    ]
+  },
+  "sustainable-living-advocate": {
+    "subject": "Congratulations on Earning Your Sustainable Living Advocate Badge!",
+    "message": "Your pledge reflects practical everyday action for greener living.",
+    "highlights": [
+      "Sustainable living can begin with waste reduction, reuse, and mindful consumption.",
+      "Your green leaf on the digital tree marks your commitment to everyday ESG habits."
+    ]
+  },
+  "ocean-guardian": {
+    "subject": "Congratulations on Earning Your Ocean Guardian Badge!",
+    "message": "Your pledge supports cleaner waterways, healthier oceans, and marine conservation.",
+    "highlights": [
+      "Reducing waste and plastic pollution protects marine ecosystems.",
+      "Every ocean-friendly action contributes to cleaner shared environments."
+    ]
+  },
+  "governance-guardian": {
+    "subject": "Congratulations on Earning Your Governance Guardian Badge!",
+    "message": "Your pledge highlights the importance of ethics, transparency, and responsible decision-making.",
+    "highlights": [
+      "Strong governance builds trust through accountability and integrity.",
+      "Responsible choices help communities and organisations create lasting impact."
+    ]
+  },
+  "social-champion": {
+    "subject": "Congratulations on Earning Your Social Champion Badge!",
+    "message": "Your pledge supports community care, inclusion, and positive social impact.",
+    "highlights": [
+      "Social responsibility grows through respect, inclusion, and support for others.",
+      "Your badge recognises action that helps build stronger communities."
+    ]
+  }
+}

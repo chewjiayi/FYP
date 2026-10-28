@@ -1,0 +1,15 @@
+npm init -y
+npm install express
+npm install multer
+npm install express-session
+npm install sharp
+npm install archiver
+npm install selfsigned https
+npm install qrcode selfsigned
+npm install nodemailer
+------------------------
+npm uninstall sqlite3 (If it has been installed)
+npm install mysql2
+npm install dotenv
+npm install bcrypt
+-----------------------

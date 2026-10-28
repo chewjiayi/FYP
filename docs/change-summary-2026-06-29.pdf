@@ -1,0 +1,290 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [7 0 R 9 0 R 11 0 R 13 0 R 15 0 R] /Count 5 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Length 5432 >>
+stream
+BT /F2 15 Tf 1 0 0 1 48 781.89 Tm (IIP Kiosk Project - Change Summary and Code Explanation) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 762.89 Tm (Updated on 30 June 2026. This report explains the completed feedback, pulse, tree, email,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 748.89 Tm (passport, animation, and admin parameter changes for the final year project. It also records) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 734.89 Tm (the bugs fixed during the review and what each relevant code area now does.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 704.89 Tm (1. Overall System Idea) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 685.89 Tm (The kiosk collects visitor feedback, optional pledge information, optional photo data, and) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 671.89 Tm (email details. After submission, the visitor earns a badge and a leaf. The same submission) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 657.89 Tm (can appear in three visitor-facing experiences: the feedback thank-you animation, the public) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 643.89 Tm (pulse screen, and the digital tree screen. Admins can control text, feature toggles,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 629.89 Tm (validation rules, page styling, backgrounds, badge leaf colours, and shared leaf size) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 615.89 Tm (through the parameter adjustment page.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 593.89 Tm (The central design choice is to keep editable values in one parameter configuration object.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 579.89 Tm (The backend serves that object through /api/parameters, while the admin page saves it) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 565.89 Tm (through /api/admin/parameters. Visitor screens read the same configuration, so the system) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 551.89 Tm (behaves consistently across feedback, pulse, and tree.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 521.89 Tm (2. Feedback Screen) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 502.89 Tm (- Quick Consent was removed from the visitor flow. Feedback is treated as long-term by) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 488.89 Tm (  default, so the visitor no longer chooses temporary versus long-term retention before) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 474.89 Tm (  entering the form.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 460.89 Tm (- The confirm submission page no longer presents Data Retention and Primary Consent in the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 446.89 Tm (  visible summary list. This reduces repeated consent wording and matches the long-term-only) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 432.89 Tm (  requirement.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 418.89 Tm (- The thank-you social buttons are controlled by the admin feature flag) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 404.89 Tm (  socialSharingEnabled. When the flag is false, the visitor does not see the social sharing) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 390.89 Tm (  buttons.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 376.89 Tm (- The thank-you and badge emails were merged into one response email. The merged email can) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 362.89 Tm (  include the thank-you message, badge result, visitor photo/passport content, and badge) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 348.89 Tm (  highlights instead of sending two separate emails.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 334.89 Tm (- The visitor passport is mapped by email. Each time a visitor completes feedback with the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 320.89 Tm (  same email address, the passport can show their own history and collected badges, giving) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 306.89 Tm (  repeat visitors a real passport-style record.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 292.89 Tm (- The feedback thank-you page now plays a flying leaf animation. The selected badge controls) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 278.89 Tm (  the leaf colour and target area, then the leaf visually joins the mini tree preview.) Tj ET
+BT /F2 12 Tf 1 0 0 1 48 256.89 Tm (Feedback Code Details) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 240.89 Tm (- frontend/feedback/feedback.js loads kioskParameters from /api/parameters.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 226.89 Tm (  applyParameterOverrides\(\) applies admin-controlled text, feature flags, validation rules,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 212.89 Tm (  layout settings, feedback background CSS, card opacity, accent colour, and celebration leaf) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 198.89 Tm (  scale.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 184.89 Tm (- getConfiguredBadgeLeafStyles\(\) builds the final badge colour map. It starts with safe) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 170.89 Tm (  fallback colours, then overlays admin values from badgeLeafStyles.colors. This means) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 156.89 Tm (  admin-selected badge colours override hardcoded defaults.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 142.89 Tm (- getCelebrationBadgeColor\(\) uses the configured badge map so the colour in the thank-you) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 128.89 Tm (  animation matches the badge leaf colour used on the tree and pulse screens.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 114.89 Tm (- setupCelebrationMoment\(\) sets CSS variables such as --celebration-badge-color,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 100.89 Tm (  --celebration-leaf-scale, --celebration-leaf-image, and the flight path variables. The CSS) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 86.89 Tm (  animation reads those variables to fly the leaf into the tree.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 72.89 Tm (- frontend/feedback/feedback.css defines --feedback-card-opacity, --feedback-accent-color,) Tj ET
+BT /F1 8 Tf 1 0 0 1 48 28 Tm (Page 1 of 5) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 5641 >>
+stream
+BT /F1 10 Tf 1 0 0 1 48 789.89 Tm (  --feedback-accent-dark, and --celebration-leaf-scale. Cards, buttons, pledge coach) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 775.89 Tm (  highlights, and the flying leaf animation use these variables.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 761.89 Tm (- backend/feedbackRoutes.js handles feedback submission, stores metadata, saves the badge) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 747.89 Tm (  result, and supports the visitor passport endpoint. The passport endpoint groups records by) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 733.89 Tm (  email so the right person sees their own repeated-feedback history.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 719.89 Tm (- backend/emailService.js builds the merged email response. It uses visitor, badge, photo,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 705.89 Tm (  and passport information so the email is more useful and avoids duplicate separate) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 691.89 Tm (  responses.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 669.89 Tm (3. Admin Parameter Interface) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 650.89 Tm (- The admin parameter page now includes Feedback Page Styling controls in the Backgrounds) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 636.89 Tm (  and Digital Overlays tab. Admins can set Feedback Background CSS, upload a background image,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 622.89 Tm (  adjust Feedback Card Opacity, and choose the Feedback Accent Colour.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 608.89 Tm (- The Digital Tree Visualization tab now includes Badge Leaf Styling controls. Admins can) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 594.89 Tm (  change the shared leaf size and choose a colour for each badge: Feedback Contributor,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 580.89 Tm (  Climate Champion, Renewable Innovator, Sustainable Living Advocate, Ocean Guardian,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 566.89 Tm (  Governance Guardian, and Social Champion.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 552.89 Tm (- The shared leaf size is saved to both treeParameters.leafDisplayScale and) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 538.89 Tm (  badgeLeafStyles.leafScale. This keeps normal green leaves and badge-coloured leaves) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 524.89 Tm (  synchronized.) Tj ET
+BT /F2 12 Tf 1 0 0 1 48 502.89 Tm (Admin Code Details) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 486.89 Tm (- backend/parametersConfigStore.js adds feedbackPageStyle and badgeLeafStyles defaults.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 472.89 Tm (  feedbackPageStyle stores backgroundCss, cardOpacity, and accentColor. badgeLeafStyles stores) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 458.89 Tm (  leafScale and a colours object keyed by badge key.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 444.89 Tm (- mergeWithDefaults\(\) deep-merges badgeLeafStyles.colors. This protects older configuration) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 430.89 Tm (  files from missing new badge colour keys after an update.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 416.89 Tm (- backend/adminRoutes.js accepts feedbackPageStyle and badgeLeafStyles in PUT) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 402.89 Tm (  /api/admin/parameters. It validates that they are objects and merges the new values into the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 388.89 Tm (  existing config.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 374.89 Tm (- backend/adminRoutes.js also updates the background upload route. Uploaded feedback) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 360.89 Tm (  backgrounds are written to both visualAssets.feedbackBackground and) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 346.89 Tm (  feedbackPageStyle.backgroundCss so the new field does not block uploaded backgrounds from) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 332.89 Tm (  appearing.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 318.89 Tm (- frontend/admin/admin.html adds the visible controls: card opacity range slider, accent) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 304.89 Tm (  colour picker, shared leaf size range slider, and per-badge colour pickers.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 290.89 Tm (- frontend/admin/admin.js populates the controls from config, binds live previews, collects) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 276.89 Tm (  form values, and saves them back in the payload. collectParameterForm\(\) is the function that) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 262.89 Tm (  packages the admin selections into the JSON sent to the backend.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 248.89 Tm (- frontend/admin/admin.css styles the new admin controls. The badge preview cards show a) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 234.89 Tm (  small leaf-shaped preview and update when the colour or size changes.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 212.89 Tm (4. Pulse Screen) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 193.89 Tm (- The pulse screen is public. Public visitors can view it without admin login, which allows) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 179.89 Tm (  it to run beside the tree on the large display.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 165.89 Tm (- The pulse layout is designed for a 7m by 2m display and should not require scrolling. It) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 151.89 Tm (  uses a dense public dashboard layout for pledge metrics, recent pledges, badge breakdown,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 137.89 Tm (  and the tree preview.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 123.89 Tm (- Pulse leaves are placed near branch anchor points and include visitor names inside the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 109.89 Tm (  leaf, similar to the /tree screen.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 95.89 Tm (- Pulse now receives badgeKey, badgeColor, and leafScale from the backend summary API. That) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 81.89 Tm (  allows pulse leaves to use the same admin-controlled badge colour and shared size as the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 67.89 Tm (  main tree.) Tj ET
+BT /F1 8 Tf 1 0 0 1 48 28 Tm (Page 2 of 5) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 5623 >>
+stream
+BT /F2 12 Tf 1 0 0 1 48 781.89 Tm (Pulse Code Details) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 765.89 Tm (- backend/pulseRoutes.js exposes GET /api/pulse/summary. It aggregates pledges today,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 751.89 Tm (  pledges this month, total pledges, campaign progress, newest pledges, top badge earners,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 737.89 Tm (  badge breakdown, and tree visitors.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 723.89 Tm (- topicToBadge\(\) converts pledge topics into human-readable badge names. topicToBadgeKey\(\)) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 709.89 Tm (  converts the same topics into stable keys used by CSS and configuration. Skipped or empty) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 695.89 Tm (  pledges become feedback-completer.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 681.89 Tm (- The pulse summary reads badgeLeafStyles from parametersConfigStore and attaches badgeColor) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 667.89 Tm (  and leafScale to each tree visitor item.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 653.89 Tm (- frontend/pulse/pulse.js renders metrics, newest pledges, badge rows, and the tree.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 639.89 Tm (  renderTree\(\) now uses visitor.badgeColor and visitor.leafScale instead of only fixed leaf) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 625.89 Tm (  images.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 611.89 Tm (- frontend/pulse/pulse.css uses .pulse-leaf-tinted to mask the leaf shape and fill it with) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 597.89 Tm (  the configured colour. Visitor names remain displayed inside the leaf.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 575.89 Tm (5. Tree Screen) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 556.89 Tm (- The feedback box below the leaf was removed from the tree leaf display. This makes the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 542.89 Tm (  screen cleaner and focuses attention on the tree, badge, visitor name, and leaf detail.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 528.89 Tm (- Leaves have an appearing animation when they enter the tree. After the configured leaf) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 514.89 Tm (  threshold is reached, leaves can drop/fall away using the leaf fall animation.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 500.89 Tm (- Badge leaves can turn green at the configured daily reset time, while VIP leaves remain) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 486.89 Tm (  gold. This supports the public tree growing cycle.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 472.89 Tm (- Badge leaf colours are now exact admin-selected colours, not approximations from) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 458.89 Tm (  hue-rotate filters. This makes the admin colour picker trustworthy.) Tj ET
+BT /F2 12 Tf 1 0 0 1 48 436.89 Tm (Tree Code Details) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 420.89 Tm (- frontend/tree/tree.js fetchParameterConfig\(\) reads treeParameters, visualAssets,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 406.89 Tm (  campaignSettings, and badgeLeafStyles from /api/parameters. It applies canopy size, refresh) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 392.89 Tm (  interval, opacity, animation timings, green reset time, tree stage, background, leaf) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 378.89 Tm (  override image, leaf display scale, and badge colour map.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 364.89 Tm (- createLeaf\(\) creates each visitor leaf as a div. It decides if the visitor is VIP, whether) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 350.89 Tm (  the leaf should be greenified, which badge profile should be used, what image side to use,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 336.89 Tm (  what size the leaf should be, and where it should appear in the tree mask.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 322.89 Tm (- getBadgeLeafColor\(\) picks the configured colour for the visitor badge key, falling back to) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 308.89 Tm (  the backend badge colour or default green.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 294.89 Tm (- frontend/tree/tree.css keeps the existing leaf image structure but adds .leaf-tinted. The) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 280.89 Tm (  pseudo-element uses the leaf PNG as a mask and fills it with --leaf-badge-color. Leaf names) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 266.89 Tm (  remain on top because the mask is applied to ::before, not the text layer.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 252.89 Tm (- backend/treeRoutes.js supplies tree visitor records with badgeKey, badgeName, badgeColor,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 238.89 Tm (  pledgeTopic, name, visit count, and created date. The frontend uses these fields to render) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 224.89 Tm (  the correct public tree leaf.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 202.89 Tm (6. Bugs Fixed During Review) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 183.89 Tm (- Background upload priority bug: the new feedbackPageStyle.backgroundCss field could) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 169.89 Tm (  override a newly uploaded background that was stored only in) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 155.89 Tm (  visualAssets.feedbackBackground. The upload route now writes both fields.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 141.89 Tm (- Palette fallback bug: admin badge leaf colour controls originally risked falling back to) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 127.89 Tm (  the email badge palette. A separate DEFAULT_BADGE_LEAF_COLORS map now keeps visual leaf) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 113.89 Tm (  colours independent from email template colours.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 99.89 Tm (- Pulse badge mismatch: pulse previously had only a badge label, so it could not reliably) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 85.89 Tm (  map to the same leaf colour used by the tree. The backend now sends badgeKey, badgeColor,) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 71.89 Tm (  and leafScale.) Tj ET
+BT /F1 8 Tf 1 0 0 1 48 28 Tm (Page 3 of 5) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 4972 >>
+stream
+BT /F1 10 Tf 1 0 0 1 48 789.89 Tm (- Badge colour accuracy: tree leaves previously depended on hue-rotate CSS classes. The new) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 775.89 Tm (  mask approach displays the exact selected hex colour.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 761.89 Tm (- Shared size drift: coloured leaves and green leaves could diverge if controlled) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 747.89 Tm (  separately. The admin save logic now writes one shared value into both relevant config) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 733.89 Tm (  fields.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 711.89 Tm (7. Data and Rendering Flow) Tj ET
+BT /F3 9 Tf 1 0 0 1 48 692.89 Tm (Admin UI -> collectParameterForm\(\) -> PUT /api/admin/parameters ->) Tj ET
+BT /F3 9 Tf 1 0 0 1 48 679.89 Tm (  parametersConfigStore.writeParametersConfig\(\)) Tj ET
+BT /F3 9 Tf 1 0 0 1 48 666.89 Tm (/api/parameters -> feedback.js, pulse.js, tree.js -> CSS variables and render logic) Tj ET
+BT /F3 9 Tf 1 0 0 1 48 653.89 Tm (Feedback submit -> backend feedback routes -> badge metadata -> email service +) Tj ET
+BT /F3 9 Tf 1 0 0 1 48 640.89 Tm (  visitor passport + public tree/pulse data) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 627.89 Tm (This flow keeps admin decisions in one configuration layer and makes each public screen read) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 613.89 Tm (from that layer. When a badge colour changes, the same colour is used in the thank-you) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 599.89 Tm (animation, pulse leaf, and tree leaf after the visitor screens reload or refresh.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 569.89 Tm (8. Important Configuration Fields) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 550.89 Tm (- feedbackPageStyle.backgroundCss: CSS background value for the feedback page. Example:) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 536.89 Tm (  url\("/assets/backgrounds/file.jpg"\) center / cover no-repeat fixed.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 522.89 Tm (- feedbackPageStyle.cardOpacity: number between 0.55 and 1.00. Lower values show more of the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 508.89 Tm (  background image through the cards.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 494.89 Tm (- feedbackPageStyle.accentColor: hex colour used by feedback buttons and accents. The) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 480.89 Tm (  frontend derives a darker shade for gradients.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 466.89 Tm (- badgeLeafStyles.leafScale: shared scale for badge leaves. It is kept in sync with) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 452.89 Tm (  treeParameters.leafDisplayScale.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 438.89 Tm (- badgeLeafStyles.colors: object keyed by badge key. Each value is a hex colour used for the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 424.89 Tm (  matching leaf.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 410.89 Tm (- treeParameters.leafDisplayScale: scale used by the main digital tree when calculating leaf) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 396.89 Tm (  width and height.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 382.89 Tm (- featureFlags.socialSharingEnabled: controls whether the thank-you page social media) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 368.89 Tm (  buttons are visible.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 346.89 Tm (9. How To Use In Admin) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 327.89 Tm (- Open Admin -> Parameter Adjustment -> Backgrounds and Digital Overlays to change the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 313.89 Tm (  feedback page background, opacity, and accent colour.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 299.89 Tm (- Use Upload Feedback Background to add a PNG, JPG, or WebP. The upload route saves it) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 285.89 Tm (  immediately as the active feedback background.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 271.89 Tm (- Open Admin -> Parameter Adjustment -> Digital Tree Visualization Parameters to change the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 257.89 Tm (  shared leaf size and badge leaf colours.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 243.89 Tm (- Save parameters after changing sliders or colour pickers. Public screens should refresh or) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 229.89 Tm (  reload to use the latest configuration.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 207.89 Tm (10. Verification Completed) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 188.89 Tm (- node --check backend/adminRoutes.js passed.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 174.89 Tm (- node --check backend/parametersConfigStore.js passed.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 160.89 Tm (- node --check backend/pulseRoutes.js passed.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 146.89 Tm (- node --check frontend/admin/admin.js passed.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 132.89 Tm (- node --check frontend/feedback/feedback.js passed.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 118.89 Tm (- node --check frontend/pulse/pulse.js passed.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 104.89 Tm (- node --check frontend/tree/tree.js passed.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 90.89 Tm (- git diff --check passed with only existing LF/CRLF line-ending warnings.) Tj ET
+BT /F2 15 Tf 1 0 0 1 48 68.89 Tm (11. Notes For Final Year Project Explanation) Tj ET
+BT /F1 8 Tf 1 0 0 1 48 28 Tm (Page 4 of 5) Tj ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 1553 >>
+stream
+BT /F1 10 Tf 1 0 0 1 48 789.89 Tm (The important engineering idea is separation of control and rendering. Admin pages do not) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 775.89 Tm (directly modify public page HTML. Instead, they save structured configuration. Public pages) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 761.89 Tm (fetch that configuration and translate it into CSS variables, render data, and animations.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 747.89 Tm (This makes the project easier to explain, test, and extend because the same parameter object) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 733.89 Tm (controls the same behaviour everywhere.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 711.89 Tm (The badge passport feature is a user-history feature. It uses the visitor email as the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 697.89 Tm (identity key, so the system can show repeated feedback achievements to the same visitor. The) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 683.89 Tm (badge colour feature is a visual-configuration feature. It uses stable badge keys so display) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 669.89 Tm (code does not depend on changing human-readable labels.) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 647.89 Tm (The leaf animation and mask work is primarily frontend rendering. JavaScript chooses the) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 633.89 Tm (badge, colour, image, size, and flight path. CSS performs the visual animation. This keeps) Tj ET
+BT /F1 10 Tf 1 0 0 1 48 619.89 Tm (animation timing and shapes in CSS while keeping visitor-specific data in JavaScript.) Tj ET
+BT /F1 8 Tf 1 0 0 1 48 28 Tm (Page 5 of 5) Tj ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 14 0 R >>
+endobj
+xref
+0 16
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000142 00000 n
+0000000212 00000 n
+0000000287 00000 n
+0000000355 00000 n
+0000005839 00000 n
+0000005991 00000 n
+0000011684 00000 n
+0000011836 00000 n
+0000017512 00000 n
+0000017666 00000 n
+0000022691 00000 n
+0000022845 00000 n
+0000024451 00000 n
+trailer
+<< /Size 16 /Root 1 0 R >>
+startxref
+24605
+%%EOF

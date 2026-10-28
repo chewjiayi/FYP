@@ -1,0 +1,176 @@
+{
+  "feedbackMessages": {
+    "thankYouTitle": "",
+    "thankYouMessage": "",
+    "thankYouSubtitle": "",
+    "thankYouFooter": "",
+    "consentPrompt": "",
+    "detailsPrompt": "",
+    "feedbackPrompt": "",
+    "pledgePrompt": ""
+  },
+  "contentSettings": {
+    "temporaryRetentionDays": 7,
+    "pledgeExamples": [
+      "Carry a reusable bottle and cutlery every day",
+      "Sort waste properly and recycle whenever possible",
+      "Reduce food waste by taking only what I can finish"
+    ]
+  },
+  "campaignSettings": {
+    "enabled": false,
+    "title": "ESG Campaign",
+    "cadence": "weekly",
+    "treeSubtitle": "This week's focus: reduce food waste through mindful choices.",
+    "pulseGoal": 100,
+    "badgeEmphasis": "sustainable-living",
+    "focusKeywords": [],
+    "pledgeExamples": [
+      "Take only what I can finish during meals",
+      "Share food waste tips with one friend this week",
+      "Choose reusable containers for takeaway food"
+    ]
+  },
+  "emailContent": {
+    "thankYouSubject": "",
+    "thankYouIntro": "",
+    "thankYouClosing": "",
+    "senderName": "",
+    "footerNote": "",
+    "visitSummaryTitle": "Your Visit Summary",
+    "visitSummaryDateLabel": "Visit date",
+    "visitSummaryTopicLabel": "Pledge topic",
+    "visitSummaryBadgeLabel": "Badge earned",
+    "visitSummaryRetentionLabel": "Data retention",
+    "visitSummaryTreeLabel": "Digital tree",
+    "visitSummaryTreeMessage": "Your virtual leaf has been added to the RP ESG digital tree."
+  },
+  "featureFlags": {
+    "cameraCaptureEnabled": true,
+    "photoUploadEnabled": true,
+    "beautyFilterEnabled": true,
+    "pledgeEnabled": true,
+    "badgeEmailEnabled": true,
+    "thankYouEmailEnabled": true,
+    "socialSharingEnabled": true,
+    "floatingLanguageSelectorEnabled": false
+  },
+  "validationRules": {
+    "nameRequired": true,
+    "nameMinLength": 0,
+    "nameMaxLength": 80,
+    "emailRequired": true,
+    "emailPattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+    "requiredQuestionsEnabled": true,
+    "pledgeRequired": true,
+    "pledgeMinLength": 0,
+    "pledgeMaxLength": 500,
+    "pledgeTopicRequired": true,
+    "photoRequired": true,
+    "dailySubmissionLimitPerEmail": 1,
+    "maxPhotoFileSizeMb": 5,
+    "allowedPhotoFormats": []
+  },
+  "treeParameters": {
+    "treeStage": 4,
+    "treeDisplayMode": "2d",
+    "ovalWidth": 850,
+    "ovalHeight": 300,
+    "ovalTopOffset": 0,
+    "leafRefreshInterval": 0,
+    "leafOpacity": 0,
+    "leafAnimationDuration": 0,
+    "leafFallThreshold": 0,
+    "leafFallDuration": 0,
+    "leafDisplayScale": 1.15,
+    "vipLeafDisplayScale": 1,
+    "showTitleBox": true,
+    "leafThresholds": {
+      "stage1": 1,
+      "stage2": 10,
+      "stage3": 25,
+      "stage4": 50
+    },
+    "treeTitleBox": {
+      "showTitleBox": true,
+      "opacity": 0.25,
+      "blur": 6,
+      "radius": 25,
+      "top": 20,
+      "paddingX": 30,
+      "paddingY": 15,
+      "position": "top-center",
+      "titleText": "🌳 ESG Digital Tree",
+      "subtitleText": "Growing with every visitor's contribution this year"
+    }
+  },
+  "feedbackPageStyle": {
+    "backgroundCss": "",
+    "cardOpacity": 0.9,
+    "accentColor": "#4a7c59"
+  },
+  "badgeLeafStyles": {
+    "leafScale": 1,
+    "colors": {
+      "feedback-completer": "#4a7c59",
+      "climate-champion": "#0f766e",
+      "renewable-innovator": "#f59e0b",
+      "sustainable-living-advocate": "#16a34a",
+      "ocean-guardian": "#0284c7",
+      "governance-guardian": "#7c3aed",
+      "social-champion": "#d97706"
+    },
+    "tintDurationHours": 0
+  },
+  "photoSettings": {
+    "beautyFilterEnabled": false,
+    "beautyFilterStrength": "medium",
+    "boomerangFrameDelayMs": 90,
+    "boomerangQuality": "medium",
+    "maxPhotoFileSize": 5242880,
+    "supportedFormats": [
+      "jpeg",
+      "png"
+    ]
+  },
+  "overlaySettings": {
+    "enableOverlayUpload": false,
+    "maxOverlayFileSize": 10485760,
+    "gifOverlaySpeed": 1,
+    "supportedFormats": [
+      "png",
+      "jpg",
+      "jpeg"
+    ]
+  },
+  "archiveSettings": {
+    "autoArchiveEnabled": true,
+    "archiveAfterDays": 90,
+    "keepRecentFeedbackCount": 0
+  },
+  "visualAssets": {
+    "feedbackBackground": "",
+    "treeBackground": "/assets/Tree/background/BackGround.png",
+    "leafImage": "/assets/Tree/leaf/NewRightLeaf.png",
+    "previousLeafImage": "/assets/Tree/leaf/OldRightLeaf.png",
+    "vipLeafImage": "/assets/Tree/vip-leaf/GoldRightLeaf.png",
+    "previousVipLeafImage": "/assets/Tree/vip-leaf/GoldLeftLeaf.png",
+    "defaultOverlayTheme": ""
+  },
+  "layoutSettings": {
+    "landingTextScale": 1,
+    "landingPanelWidth": 600,
+    "landingPanelMinHeight": 0,
+    "landingPanelPadding": 60,
+    "landingPanelOffsetX": 0,
+    "landingPanelOffsetY": 0,
+    "startButtonOffsetX": 0,
+    "startButtonOffsetY": 0,
+    "startButtonWidth": 280,
+    "startButtonHeight": 64,
+    "pledgeboardButtonOffsetX": 0,
+    "pledgeboardButtonOffsetY": 0,
+    "pledgeboardButtonWidth": 600,
+    "pledgeboardButtonHeight": 64
+  }
+}
