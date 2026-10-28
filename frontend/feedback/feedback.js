@@ -1779,6 +1779,50 @@ function drawFaceAccessoryForCameraView(ctx, landmarks, width, height) {
     ctx.restore();
 }
 
+
+
+let smoothedFaceAccessoryLandmarks = null;
+
+function smoothFaceAccessoryLandmarks(currentLandmarks, smoothing = 0.65) {
+    if (!currentLandmarks) {
+        smoothedFaceAccessoryLandmarks = null;
+        return null;
+    }
+
+    if (
+        !smoothedFaceAccessoryLandmarks ||
+        smoothedFaceAccessoryLandmarks.length !== currentLandmarks.length
+    ) {
+        smoothedFaceAccessoryLandmarks = currentLandmarks.map(point => ({
+            ...point
+        }));
+
+        return smoothedFaceAccessoryLandmarks;
+    }
+
+    smoothedFaceAccessoryLandmarks = currentLandmarks.map((point, index) => {
+        const previous = smoothedFaceAccessoryLandmarks[index];
+
+        const smoothedPoint = { ...point };
+
+        for (const key of ['x', 'y', 'z']) {
+            if (
+                typeof point[key] === 'number' &&
+                typeof previous[key] === 'number'
+            ) {
+                smoothedPoint[key] =
+                    smoothing * previous[key] +
+                    (1 - smoothing) * point[key];
+            }
+        }
+
+        return smoothedPoint;
+    });
+
+    return smoothedFaceAccessoryLandmarks;
+}
+
+
 function renderLiveFaceAccessory() {
     const video = document.getElementById('video');
     const canvas = document.getElementById('face-accessory-canvas');
