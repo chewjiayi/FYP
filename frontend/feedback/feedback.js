@@ -234,6 +234,7 @@ const FACE_ACCESSORY_OPTIONS = [
     { id: 'leaf-crown', label: 'Leaf crown' },
     { id: 'graduation', label: 'Graduation cap' }
 ];
+
 const FACE_ACCESSORY_IDS = FACE_ACCESSORY_OPTIONS.map(option => option.id);
 let faceFilterScrollTimer = null;
 let qrRefreshTimer = null;
@@ -307,6 +308,7 @@ function syncPledgeTopicField() {
     if (hiddenTopic) hiddenTopic.value = selectedTopics[0] || '';
     return selectedTopics;
 }
+
 
 function formatPledgeTopicLabel(topic) {
     return PLEDGE_TOPIC_LABELS[topic] || String(topic || '')
@@ -1301,12 +1303,45 @@ function getFaceAccessoryLandmarksFromResult(result) {
 }
 
 function detectFaceAccessoryLandmarks(video) {
-    if (!faceLandmarker || !video || video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
+    if (
+        !faceLandmarker ||
+        !video ||
+        video.readyState < 2 ||
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+    ) {
         return null;
     }
 
-    const result = faceLandmarker.detectForVideo(video, performance.now());
-    return getFaceAccessoryLandmarksFromResult(result);
+    const result = faceLandmarker.detectForVideo(
+        video,
+        performance.now()
+    );
+
+    // Get facial landmarks for your existing filters
+    const landmarks = getFaceAccessoryLandmarksFromResult(result);
+
+    // Get facial movement scores for interactive effects
+    const blendshapes = result.faceBlendshapes?.[0]?.categories || [];
+
+    const getScore = (name) => {
+        const category = blendshapes.find(
+            item => item.categoryName === name
+        );
+
+        return category?.score ?? 0;
+    };
+
+    return {
+        landmarks,
+        expressions: {
+            smileLeft: getScore('mouthSmileLeft'),
+            smileRight: getScore('mouthSmileRight'),
+            jawOpen: getScore('jawOpen'),
+            blinkLeft: getScore('eyeBlinkLeft'),
+            blinkRight: getScore('eyeBlinkRight')
+        }
+    };
 }
 
 function clearFaceAccessoryCanvas() {
