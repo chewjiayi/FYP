@@ -136,6 +136,7 @@ const pulseRoutes = require('./pulseRoutes');
 const os = require('os');
 const emailService = require('./emailService');
 const systemRoutes = require('./systemRoutes');   // System Status page APIs
+const hibernationRoutes = require('./hibernationRoutes');   // Hibernation policy settings (by Zhi Ruo)
 const auth = require('./auth');
 const parametersConfigStore = require('./parametersConfigStore');
 
@@ -418,6 +419,7 @@ setTreeDatabase(db);
 
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin/system', systemRoutes);
+app.use('/api/admin/hibernation', hibernationRoutes);  
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);
