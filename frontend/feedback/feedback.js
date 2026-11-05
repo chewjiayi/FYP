@@ -10074,17 +10074,17 @@ function resetInactivityTimer() {
     const TAG_TEXT = 'Dream';   // label on the first photo of the Dream templates
 
     const COLOURS = {
-        green:  { label: 'Green',  h: 100, s: 45, dot: '#8fce5a' },
-        pink:   { label: 'Pink',   h: 338, s: 55, dot: '#f08fb0' },
-        blue:   { label: 'Blue',   h: 208, s: 50, dot: '#7fb4ea' },
+        green: { label: 'Green', h: 100, s: 45, dot: '#8fce5a' },
+        pink: { label: 'Pink', h: 338, s: 55, dot: '#f08fb0' },
+        blue: { label: 'Blue', h: 208, s: 50, dot: '#7fb4ea' },
         purple: { label: 'Purple', h: 268, s: 42, dot: '#b18fe0' },
-        yellow: { label: 'Yellow', h: 45,  s: 65, dot: '#f2cf55' },
-        orange: { label: 'Orange', h: 24,  s: 65, dot: '#f1a56a' }
+        yellow: { label: 'Yellow', h: 45, s: 65, dot: '#f2cf55' },
+        orange: { label: 'Orange', h: 24, s: 65, dot: '#f1a56a' }
     };
     const TEMPLATES = [
-        { id: 'meadow',  name: 'Floral Meadow',  colours: ['theme', 'green', 'pink', 'blue', 'purple', 'yellow', 'orange'] },
-        { id: 'dream',   name: 'Nature Gingham', colours: ['green', 'pink', 'blue', 'purple', 'yellow', 'orange'] },
-        { id: 'gingham', name: 'Gingham Dream',  colours: ['green', 'pink', 'blue', 'purple', 'yellow', 'orange'] }
+        { id: 'meadow', name: 'Floral Meadow', colours: ['theme', 'green', 'pink', 'blue', 'purple', 'yellow', 'orange'] },
+        { id: 'dream', name: 'Nature Gingham', colours: ['green', 'pink', 'blue', 'purple', 'yellow', 'orange'] },
+        { id: 'gingham', name: 'Gingham Dream', colours: ['green', 'pink', 'blue', 'purple', 'yellow', 'orange'] }
     ];
     const state = { template: 'dream', colour: 'green' };
     const cache = { key: '', url: '', w: 0, h: 0 };
@@ -10180,6 +10180,23 @@ function resetInactivityTimer() {
     function hidePicker() {
         const box = document.getElementById('strip-template-picker');
         if (box) box.style.display = 'none';
+    }
+    // "Available Overlays" selector: only for normal (non-strip) photos
+    function findOverlaySection() {
+        if (findOverlaySection.el && document.contains(findOverlaySection.el)) return findOverlaySection.el;
+        const label = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,div,label'))
+            .find((el) => el.children.length === 0 && /^\s*available overlays\s*$/i.test(el.textContent));
+        if (!label) return null;
+        let box = label.parentElement;
+        while (box && box !== document.body && !/Nature\s*Theme/i.test(box.textContent)) box = box.parentElement;
+        findOverlaySection.el = (box && box !== document.body) ? box : null;
+        return findOverlaySection.el;
+    }
+    function setOverlaysVisible(visible) {
+        const el = findOverlaySection();
+        if (!el) return;
+        if (visible) el.style.removeProperty('display');
+        else el.style.setProperty('display', 'none', 'important');
     }
 
     // ---------------- shared drawing helpers ----------------
@@ -10670,10 +10687,12 @@ function resetInactivityTimer() {
 
         if (!previewPhoto || !frame || !isStrip()) {
             hidePicker();
+            setOverlaysVisible(true);
             window.stripColourOverride = null;
             return updatePreviewBeforePicker.apply(this, arguments);
         }
 
+        setOverlaysVisible(false);
         renderPicker(frame);
         applyColourOverride();
         if (!isCustom()) return updatePreviewBeforePicker.apply(this, arguments);
@@ -10717,6 +10736,7 @@ function resetInactivityTimer() {
             state.template = 'dream'; state.colour = 'green';
             window.stripColourOverride = null;
             hidePicker();
+            setOverlaysVisible(true);
             return result;
         };
     });
