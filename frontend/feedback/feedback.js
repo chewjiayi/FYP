@@ -10581,3 +10581,196 @@ function resetInactivityTimer() {
         };
     });
 })();
+
+// ============================================================================
+// ESG CENTRE PHOTO FRAME  (ordinary photos only - NOT strips, NOT boomerang)
+// - Adds an "ESG Centre" option to the style page theme list
+// - Fits the photo inside the frame's cutout (cover-fit, rounded corners)
+// - Works whether the frame PNG's middle is transparent OR solid white
+//   (if solid white, the white cutout is removed automatically)
+// ============================================================================
+(function esgCentreFrame() {
+    const THEME_ID = 'esg-centre';
+    const THEME_NAME = 'ESG Centre';
+    const FRAME_SRC = '/assets/overlays/rp-esg-centre-frame.png';   // <-- put your PNG here
+    const MAKE_DEFAULT = true;                                      // select it automatically on the style page
+
+    // Cutout position as a fraction of the frame image (measured from your 1447 x 1087 frame).
+    // If the photo overlaps the green border or leaves a gap, nudge these numbers slightly.
+    const CUT = { x: 0.0746, y: 0.1656, w: 0.8530, h: 0.7195, radius: 0.022 };
+    const BLEED = 0.004;   // photo tucks slightly under the green border
+
+    let framePromise = null;
+    const cache = { key: '', url: '', w: 0, h: 0 };
+
+    function isStrip() { return Boolean(photoData) && shouldContainPhoto(photoData); }
+    function isEsgStill() {
+        return selectedTheme === THEME_ID && !isStrip() && Boolean(photoData) &&
+            userData.captureMode !== 'boomerang' && boomerangFrames.length === 0;
+    }
+
+    // ---------- load frame, and remove the white cutout if it is solid ----------
+    function punchOutCutout(g, w, h) {
+        const cx = Math.round((CUT.x + CUT.w / 2) * w);
+        const cy = Math.round((CUT.y + CUT.h / 2) * h);
+        const img = g.getImageData(0, 0, w, h);
+        const px = img.data;
+        if (px[(cy * w + cx) * 4 + 3] < 200) return;   // already transparent, nothing to do
+
+        const inset = 0.004;
+        const x0 = Math.round((CUT.x + inset) * w), x1 = Math.round((CUT.x + CUT.w - inset) * w);
+        const y0 = Math.round((CUT.y + inset) * h), y1 = Math.round((CUT.y + CUT.h - inset) * h);
+        const isWhite = (i) => px[i + 3] > 0 && px[i] >= 236 && px[i + 1] >= 236 && px[i + 2] >= 236;
+
+        const stack = [cx, cy];
+        while (stack.length) {
+            const y = stack.pop(), x = stack.pop();
+            if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+            const i = (y * w + x) * 4;
+            if (!isWhite(i)) continue;
+            px[i + 3] = 0;   // make transparent (also marks as visited)
+            stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+        }
+        g.putImageData(img, 0, 0);
+    }
+
+    function loadFrame() {
+        if (!framePromise) {
+            framePromise = loadImageElement(FRAME_SRC).then((img) => {
+                const c = document.createElement('canvas');
+                c.width = img.naturalWidth;
+                c.height = img.naturalHeight;
+                const g = c.getContext('2d', { willReadFrequently: true });
+                g.drawImage(img, 0, 0);
+                punchOutCutout(g, c.width, c.height);
+                return c;
+            }).catch((error) => { framePromise = null; throw error; });
+        }
+        return framePromise;
+    }
+
+    // ---------- compose photo + frame ----------
+    async function compose(outW) {
+        const [frame, img] = await Promise.all([loadFrame(), loadImageElement(photoData)]);
+        const key = [photoData.length, photoData.slice(-40), outW].join('|');
+        if (cache.key === key) return cache;
+
+        const W = outW, H = Math.round(outW * frame.height / frame.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, W, H);
+
+        const bleed = BLEED * W;
+        const cx = CUT.x * W - bleed, cy = CUT.y * H - bleed;
+        const cw = CUT.w * W + bleed * 2, ch = CUT.h * H + bleed * 2;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(cx, cy, cw, ch, CUT.radius * W);
+        ctx.clip();
+        const scale = Math.max(cw / img.width, ch / img.height);   // cover fit
+        const dw = img.width * scale, dh = img.height * scale;
+        ctx.drawImage(img, cx + (cw - dw) / 2, cy + (ch - dh) / 2, dw, dh);
+        ctx.restore();
+
+        ctx.drawImage(frame, 0, 0, W, H);   // frame on top
+
+        cache.key = key;
+        cache.url = canvas.toDataURL('image/png');
+        cache.w = W; cache.h = H;
+        return cache;
+    }
+
+    // ---------- add the "ESG Centre" option to the theme list ----------
+    function injectThemeOption() {
+        const list = document.getElementById('overlay-options');
+        if (!list) return;
+
+        overlayData[THEME_ID] = {
+            desktop_filename: FRAME_SRC,
+            mobile_filename: FRAME_SRC,
+            display_name: THEME_NAME
+        };
+
+        if (!list.querySelector('[data-esg-centre]')) {
+            const option = document.createElement('div');
+            option.className = 'theme-option';
+            option.dataset.esgCentre = '1';
+            option.onclick = () => selectTheme(THEME_ID, option);
+            option.innerHTML =
+                '<div class="theme-swatch" style="background:#4a9d3f url(\'' + FRAME_SRC + '\') center/cover no-repeat;"></div>' +
+                '<div class="theme-name">' + THEME_NAME + '</div>';
+            list.insertBefore(option, list.firstChild);
+        }
+
+        if (MAKE_DEFAULT) {
+            setTimeout(() => {
+                const el = list.querySelector('[data-esg-centre]');
+                if (el) selectTheme(THEME_ID, el);
+            }, 250);   // after feedback.js picks its own default (100ms)
+        }
+    }
+
+    const loadOverlayOptionsBase = loadOverlayOptions;
+    loadOverlayOptions = async function () {
+        await loadOverlayOptionsBase.apply(this, arguments);
+        injectThemeOption();
+    };
+
+    // ---------- style page preview ----------
+    function resetPreviewLook(previewPhoto, overlay) {
+        if (overlay) overlay.style.removeProperty('display');
+        const frame = previewPhoto && previewPhoto.closest('.preview-frame');
+        if (frame) {
+            frame.style.removeProperty('width');
+            frame.style.removeProperty('height');
+            frame.style.removeProperty('max-width');
+        }
+        if (previewPhoto) previewPhoto.style.removeProperty('object-fit');
+    }
+
+    const updatePreviewBeforeEsg = updatePreviewWithCutout;
+    updatePreviewWithCutout = function () {
+        const previewPhoto = document.getElementById('preview-photo');
+        const overlay = document.getElementById('selected-overlay');
+
+        if (!previewPhoto || !isEsgStill()) {
+            resetPreviewLook(previewPhoto, overlay);
+            return updatePreviewBeforeEsg.apply(this, arguments);
+        }
+
+        stopBoomerangPreview();
+        updateBoomerangPreviewControls(hasRestorableBoomerang());
+        if (overlay) overlay.style.setProperty('display', 'none', 'important');
+        previewPhoto.style.setProperty('object-fit', 'contain', 'important');
+
+        compose(1000)
+            .then((r) => {
+                if (!isEsgStill()) return;   // user switched theme while loading
+                const frame = previewPhoto.closest('.preview-frame');
+                if (frame) {
+                    const w = currentDevice === 'mobile' ? 324 : 560;
+                    frame.style.setProperty('width', w + 'px', 'important');
+                    frame.style.setProperty('max-width', '100%', 'important');
+                    frame.style.setProperty('height', Math.round(w * r.h / r.w) + 'px', 'important');
+                }
+                previewPhoto.src = r.url;
+            })
+            .catch((error) => console.error('ESG Centre frame preview failed:', error));
+    };
+
+    // ---------- final saved / emailed image ----------
+    const processStillBeforeEsg = processFinalPhotoFromStillFrame;
+    processFinalPhotoFromStillFrame = function () {
+        if (!isEsgStill()) return processStillBeforeEsg.apply(this, arguments);
+
+        return compose(1600)
+            .then((r) => { userData.processedPhoto = r.url; })
+            .catch((error) => {
+                console.error('ESG Centre frame failed, using standard frame:', error);
+                return processStillBeforeEsg.apply(this, arguments);
+            });
+    };
+})();
