@@ -372,8 +372,7 @@ async function buildBoomerangGifBuffer(frameDataUrls, delayMs) { // Backend anim
         .toBuffer();
 }
 
-// ==================== 2. QUESTION MANAGEMENT ROUTES ====================
-// Get active questions for feedback form
+
 router.get('/questions', (req, res) => {
     console.log('📋 Fetching active questions for feedback form...');
     
