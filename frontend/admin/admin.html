@@ -277,6 +277,11 @@
                             <span class="nav-icon">🕔</span>
                             Timer Countdown
                         </a>
+                         <!-- Move System Status card to its own page - By ZHI RUO -->
+                        <a href="#" class="nav-item" onclick="showPage('system-status')">
+                            <span class="nav-icon">🩺</span>
+                            System Status
+                        </a>
                         <a href="#" class="nav-item" onclick="showPage('server-schedule')">
                             <span class="nav-icon">❗</span>
                             Server Schedule
@@ -448,46 +453,8 @@
                         </div>
                     </section>
 
-                    <!-- System Status & Quick Actions -->
-                    <div class="dashboard-bottom-section">
-                        <!-- System Status -->
-                        <div class="status-card">
-                            <div class="status-header">
-                                <h3>System Status</h3>
-                                <span id="overall-system-status" class="status-indicator status-online">
-                                    <span class="status-dot"></span>
-                                    All Systems Operational
-                                </span>
-                            </div>
-                            <div class="status-grid">
-                                <div class="status-item">
-                                    <div class="status-item-icon">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                            <line x1="8" y1="21" x2="16" y2="21"></line>
-                                            <line x1="12" y1="17" x2="12" y2="21"></line>
-                                        </svg>
-                                    </div>
-                                    <div class="status-item-content">
-                                        <span class="status-item-label">Kiosk Server</span>
-                                        <span id="kiosk-server-status" class="status-badge status-checking">Checking...</span>
-                                    </div>
-                                </div>
-                                <div class="status-item">
-                                    <div class="status-item-icon">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="status-item-content">
-                                        <span class="status-item-label">Database</span>
-                                        <span id="database-status" class="status-badge status-checking">Checking...</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Quick Actions -->
+                        <div class="dashboard-bottom-section">
 
                         <!-- Quick Actions -->
                         <div class="quick-actions-card">
@@ -3227,6 +3194,122 @@
 
                     <!-- Status Message -->
                     <div id="parameter-status" class="status-message" style="display: none;"></div>
+                </div>
+
+
+                                <!-- System Status Page (DONE BY ZHI RUO) -->
+                <div id="system-status-page" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h2>System Status</h2>
+                            <p> Live health of the kiosk server, database and supporting services</p>
+                        </div>
+                        <button class="refresh-btn" onclick="loadSystemStatusPage()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h3>Services</h3>
+                            <span id="overall-system-status" class="status-indicator status-online">
+                                <span class="status-dot"></span>
+                                All Systems Operational
+                            </span>
+                        </div>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <div class="status-item-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                                    </svg>
+                                </div>
+                                <div class="status-item-content">
+                                    <span class="status-item-label">Kiosk Server</span>
+                                    <span id="kiosk-server-status" class="status-badge status-checking">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-item-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                                    </svg>
+                                </div>
+                                <div class="status-item-content">
+                                    <span class="status-item-label">Database</span>
+                                    <span id="database-status" class="status-badge status-checking">Checking...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="last-updated" id="system-status-last-checked">Last checked: --</p>
+                    </div>
+                    
+                    <!-- AI Models Health -->
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h3>AI Models (LLM)</h3>
+                            <span id="ollama-status" class="status-badge status-checking">Checking...</span>
+                        </div>
+                        <div id="ai-model-list" class="status-grid">
+                            <p class="last-updated">Checking AI models...</p>
+                        </div>
+                    </div>
+
+                    <!-- Hardware Usage -->
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h3>Hardware Usage</h3>
+                            <span class="status-item-label">Live · updates every 5s</span>
+                        </div>
+                        <div class="hw-grid">
+
+                            <!-- GPU -->
+                            <div class="hw-card">
+                                <div class="hw-card-header">
+                                    <div>
+                                        <div class="hw-card-title">GPU Usage</div>
+                                        <div class="hw-card-sub" id="gpu-subtitle">AI model processing</div>
+                                    </div>
+                                    <div class="hw-card-value" id="gpu-current">--</div>
+                                </div>
+                                <div class="hw-chart-wrap"><canvas id="gpuUsageChart"></canvas></div>
+                            </div>
+
+                            <!-- CPU -->
+                            <div class="hw-card">
+                                <div class="hw-card-header">
+                                    <div>
+                                        <div class="hw-card-title">CPU Usage</div>
+                                        <div class="hw-card-sub" id="cpu-subtitle">Application processing</div>
+                                    </div>
+                                    <div class="hw-card-value" id="cpu-current">--</div>
+                                </div>
+                                <div class="hw-chart-wrap"><canvas id="cpuUsageChart"></canvas></div>
+                            </div>
+
+                            <!-- Storage -->
+                            <div class="hw-card">
+                                <div class="hw-card-header">
+                                    <div>
+                                        <div class="hw-card-title">Application Storage</div>
+                                        <div class="hw-card-sub" id="storage-subtitle">Drive usage</div>
+                                    </div>
+                                    <div class="hw-card-value" id="storage-current">--</div>
+                                </div>
+                                <div class="hw-chart-wrap"><canvas id="storageUsageChart"></canvas></div>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Timer Countdown Page (DONE BY BERNISSA) -->

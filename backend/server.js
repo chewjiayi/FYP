@@ -135,6 +135,7 @@ const pledgeboardRoutes = require('./pledgeboardRoutes');
 const pulseRoutes = require('./pulseRoutes');
 const os = require('os');
 const emailService = require('./emailService');
+const systemRoutes = require('./systemRoutes');   // System Status page APIs
 const auth = require('./auth');
 const parametersConfigStore = require('./parametersConfigStore');
 
@@ -416,6 +417,7 @@ setTreeDatabase(db);
 // ==================== 5. API ROUTES ====================
 
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin/system', systemRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);

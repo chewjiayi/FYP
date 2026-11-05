@@ -7531,3 +7531,105 @@ input:checked + .slider:before {
         display: none;
     }
 }
+
+/* ==================== SYSTEM STATUS PAGE ==================== */
+/* By ZHI RUO */
+/* Same header layout the dashboard uses (title left, Refresh right) */
+#system-status-page .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+/* Refresh button: icon + text on one line, icon spins while pressed */
+#system-status-page .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: var(--theme-btn-primary-bg);
+    color: var(--theme-btn-primary-text);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#system-status-page .refresh-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+#system-status-page .refresh-btn svg {
+    animation: spin 1s linear infinite;
+    animation-play-state: paused;
+}
+
+#system-status-page .refresh-btn:active svg,
+#system-status-page .refresh-btn.is-loading svg {
+    animation-play-state: running;
+}
+
+/* Icon boxes follow the theme instead of fixed white */
+#system-status-page .status-item-icon {
+    background: var(--theme-card-bg);
+    border: 1px solid var(--theme-border-color);
+    flex-shrink: 0;
+}
+
+/* Gap between the stacked cards on this page */
+#system-status-page .status-card + .status-card {
+    margin-top: 1.5rem;
+}
+
+/* Page padding (same as the other admin pages) */
+#system-status-page {
+    min-height: 100%;
+    padding: 30px;
+}
+
+/* Hardware usage graphs */
+.hw-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.hw-card {
+    background: var(--theme-bg-color);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+}
+
+.hw-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.hw-card-title {
+    font-weight: 600;
+}
+
+.hw-card-sub {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 2px;
+}
+
+.hw-card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--theme-btn-primary-bg);
+}
+
+/* Fixed height so Chart.js doesn't keep growing */
+.hw-chart-wrap {
+    position: relative;
+    height: 200px;
+}

@@ -1777,7 +1777,6 @@ async function loadDashboardData() {
         
         if (data.success) {
             updateEnhancedDashboardStats(data.stats);
-            await updateSystemStatus(data.recentActivity); // Check all system statuses (System Status section)
             
             preti_startDashboardKioskMonitoring();
             
@@ -9004,6 +9003,11 @@ function showPage(pageName) {
     if (pageName !== 'dashboard') {
         preti_stopDashboardKioskMonitoring();
     }
+
+    // System Status page: stop auto-refresh when leaving the page - BY ZHI RUO
+    if (pageName !== 'system-status') {
+        stopSystemStatusAutoRefresh();
+    }
     
     const userRole = sessionStorage.getItem('userRole');
     
@@ -9088,8 +9092,9 @@ function showPage(pageName) {
     loadParameters();
     } else if (pageName === 'vip') {
     loadVipManagementData();
+    } else if (pageName === 'system-status') {
+    initSystemStatusPage();
     }
-    
     
 }
 
@@ -16034,3 +16039,254 @@ async function watchKioskService() {
 
 setInterval(watchKioskService, 3000);
 watchKioskService();
+
+// ==================== SYSTEM STATUS PAGE (BY ZHI RUO) ====================
+// Live health + hardware graphs for the System Status page.
+// Data comes from: /api/admin/system/metrics and /api/admin/system/ai-health
+
+const SYSTEM_STATUS_REFRESH_MS = 5000;     // how often the graphs update
+const SYSTEM_STATUS_SERVICES_EVERY = 3;    // services/AI check runs every 3rd tick (~15s)
+const SYSTEM_STATUS_MAX_POINTS = 30;       // points kept on the line graphs (~2.5 min)
+
+let systemStatusTimer = null;
+let systemStatusTick = 0;
+let gpuUsageChart = null;
+let cpuUsageChart = null;
+let storageUsageChart = null;
+const systemStatusHistory = { labels: [], cpu: [], gpu: [] };
+
+function sysStatusSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
+
+// ---------- Charts ----------
+function sysStatusCreateLineChart(canvasId, label, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    return new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label,
+                data: [],
+                borderColor: color,
+                backgroundColor: color + '22',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 0,
+                borderWidth: 2,
+                spanGaps: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
+                x: { ticks: { maxTicksLimit: 5 } }
+            }
+        }
+    });
+}
+
+function initSystemStatusCharts() {
+    if (!gpuUsageChart) gpuUsageChart = sysStatusCreateLineChart('gpuUsageChart', 'GPU usage', '#7c3aed');
+    if (!cpuUsageChart) cpuUsageChart = sysStatusCreateLineChart('cpuUsageChart', 'CPU usage', '#2563eb');
+
+    if (!storageUsageChart) {
+        const canvas = document.getElementById('storageUsageChart');
+        if (canvas) {
+            storageUsageChart = new Chart(canvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Used', 'Free'],
+                    datasets: [{ data: [0, 1], backgroundColor: ['#0d9488', '#e5e7eb'], borderWidth: 0 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed} GB` } }
+                    }
+                }
+            });
+        }
+    }
+}
+
+function sysStatusRecordHistory(cpuUsage, gpuUsage) {
+    const h = systemStatusHistory;
+    h.labels.push(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    h.cpu.push(cpuUsage);
+    h.gpu.push(gpuUsage);   // null leaves a gap in the graph (GPU not reporting)
+
+    while (h.labels.length > SYSTEM_STATUS_MAX_POINTS) {
+        h.labels.shift();
+        h.cpu.shift();
+        h.gpu.shift();
+    }
+
+    if (cpuUsageChart) {
+        cpuUsageChart.data.labels = h.labels.slice();
+        cpuUsageChart.data.datasets[0].data = h.cpu.slice();
+        cpuUsageChart.update();
+    }
+    if (gpuUsageChart) {
+        gpuUsageChart.data.labels = h.labels.slice();
+        gpuUsageChart.data.datasets[0].data = h.gpu.slice();
+        gpuUsageChart.update();
+    }
+}
+
+// ---------- Hardware metrics (CPU / GPU / storage) ----------
+async function loadHardwareMetrics() {
+    try {
+        const response = await fetch('/api/admin/system/metrics');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Metrics unavailable');
+
+        // Prefer the GPU that actually reports utilization (e.g. NVIDIA over integrated)
+        const gpus = data.gpus || [];
+        const gpu = gpus.find(g => g.utilization !== null) || gpus[0] || null;
+        const gpuUsage = gpu && gpu.utilization !== null ? gpu.utilization : null;
+
+        sysStatusRecordHistory(data.cpu.usage, gpuUsage);
+
+        sysStatusSetText('cpu-current', data.cpu.usage + '%');
+        sysStatusSetText('cpu-subtitle', `Application processing · ${data.cpu.cores} cores`);
+
+        sysStatusSetText('gpu-current', gpuUsage !== null ? gpuUsage + '%' : 'N/A');
+        if (!gpu) {
+            sysStatusSetText('gpu-subtitle', 'No GPU detected');
+        } else if (gpuUsage === null) {
+            sysStatusSetText('gpu-subtitle', `${gpu.name} · usage not reported by driver`);
+        } else {
+            sysStatusSetText('gpu-subtitle', `AI model processing · ${gpu.name}`);
+        }
+
+        if (data.storage) {
+            sysStatusSetText('storage-current', data.storage.usage + '%');
+            sysStatusSetText('storage-subtitle',
+                `Drive ${data.storage.mount} · ${data.storage.usedGB} of ${data.storage.totalGB} GB used`);
+            if (storageUsageChart) {
+                const free = Math.max(data.storage.totalGB - data.storage.usedGB, 0);
+                storageUsageChart.data.datasets[0].data = [data.storage.usedGB, Math.round(free * 10) / 10];
+                storageUsageChart.update();
+            }
+        } else {
+            sysStatusSetText('storage-current', 'N/A');
+            sysStatusSetText('storage-subtitle', 'Storage information unavailable');
+        }
+    } catch (error) {
+        console.error('❌ Error loading hardware metrics:', error);
+        sysStatusSetText('cpu-current', 'Error');
+        sysStatusSetText('gpu-current', 'Error');
+        sysStatusSetText('storage-current', 'Error');
+    }
+}
+
+// ---------- AI / LLM health ----------
+async function loadAiHealth() {
+    const listEl = document.getElementById('ai-model-list');
+    const ollamaEl = document.getElementById('ollama-status');
+    if (!listEl || !ollamaEl) return;
+
+    try {
+        const response = await fetch('/api/admin/system/ai-health');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'AI health unavailable');
+
+        const running = data.ollama && data.ollama.running;
+        ollamaEl.className = 'status-badge ' + (running ? 'status-online' : 'status-offline');
+        ollamaEl.textContent = running ? 'Ollama Running' : 'Ollama Offline';
+
+        listEl.innerHTML = (data.models || []).map(m => {
+            let badgeClass, badgeText;
+            if (!running) {
+                badgeClass = 'status-offline';  badgeText = 'Unavailable';
+            } else if (m.loaded) {
+                badgeClass = 'status-online';   badgeText = 'Loaded';
+            } else if (m.installed) {
+                badgeClass = 'status-active';   badgeText = 'Installed';
+            } else {
+                badgeClass = 'status-error';    badgeText = 'Not installed';
+            }
+            return `
+                <div class="status-item">
+                    <div class="status-item-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                            <rect x="9" y="9" width="6" height="6"></rect>
+                            <line x1="9" y1="1" x2="9" y2="4"></line>
+                            <line x1="15" y1="1" x2="15" y2="4"></line>
+                            <line x1="9" y1="20" x2="9" y2="23"></line>
+                            <line x1="15" y1="20" x2="15" y2="23"></line>
+                            <line x1="20" y1="9" x2="23" y2="9"></line>
+                            <line x1="20" y1="14" x2="23" y2="14"></line>
+                            <line x1="1" y1="9" x2="4" y2="9"></line>
+                            <line x1="1" y1="14" x2="4" y2="14"></line>
+                        </svg>
+                    </div>
+                    <div class="status-item-content">
+                        <span class="status-item-label">${escapeHtml(m.name)}</span>
+                        <span class="status-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (error) {
+        console.error('❌ Error loading AI health:', error);
+        ollamaEl.className = 'status-badge status-error';
+        ollamaEl.textContent = 'Error';
+    }
+}
+
+// ---------- Page load / refresh ----------
+async function loadSystemStatusPage() {
+    const btn = document.querySelector('#system-status-page .refresh-btn');
+    if (btn) btn.classList.add('is-loading');
+
+    try {
+        await Promise.all([
+            updateSystemStatus(),    // Kiosk Server + Database (existing function)
+            loadAiHealth(),
+            loadHardwareMetrics()
+        ]);
+        sysStatusSetText('system-status-last-checked', 'Last checked: ' + new Date().toLocaleTimeString());
+    } finally {
+        if (btn) btn.classList.remove('is-loading');
+    }
+}
+
+function initSystemStatusPage() {
+    initSystemStatusCharts();      // page is visible now, so the canvases have a size
+    loadSystemStatusPage();
+    startSystemStatusAutoRefresh();
+}
+
+function startSystemStatusAutoRefresh() {
+    stopSystemStatusAutoRefresh();
+    systemStatusTick = 0;
+    systemStatusTimer = setInterval(async () => {
+        systemStatusTick++;
+        await loadHardwareMetrics();
+        if (systemStatusTick % SYSTEM_STATUS_SERVICES_EVERY === 0) {
+            await Promise.all([updateSystemStatus(), loadAiHealth()]);
+        }
+        sysStatusSetText('system-status-last-checked', 'Last checked: ' + new Date().toLocaleTimeString());
+    }, SYSTEM_STATUS_REFRESH_MS);
+}
+
+function stopSystemStatusAutoRefresh() {
+    if (systemStatusTimer) {
+        clearInterval(systemStatusTimer);
+        systemStatusTimer = null;
+    }
+}
