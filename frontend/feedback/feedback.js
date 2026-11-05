@@ -10071,7 +10071,7 @@ function resetInactivityTimer() {
 // Shown on the style page only when the visitor took a photo strip.
 // ============================================================================
 (function stripTemplatePicker() {
-    const TAG_TEXT = 'Dream';   // label on the first photo of Gingham Dream
+    const TAG_TEXT = 'Dream';   // label on the first photo of the Dream templates
 
     const COLOURS = {
         green:  { label: 'Green',  h: 100, s: 45, dot: '#8fce5a' },
@@ -10082,17 +10082,38 @@ function resetInactivityTimer() {
         orange: { label: 'Orange', h: 24,  s: 65, dot: '#f1a56a' }
     };
     const TEMPLATES = [
-        { id: 'meadow', name: 'Floral Meadow', colours: ['theme', 'green', 'pink', 'blue', 'purple', 'yellow', 'orange'] },
-        { id: 'dream',  name: 'Nature Gingham', colours: ['green', 'pink', 'blue', 'purple', 'yellow', 'orange'] }
+        { id: 'meadow',  name: 'Floral Meadow',  colours: ['theme', 'green', 'pink', 'blue', 'purple', 'yellow', 'orange'] },
+        { id: 'dream',   name: 'Nature Gingham', colours: ['green', 'pink', 'blue', 'purple', 'yellow', 'orange'] },
+        { id: 'gingham', name: 'Gingham Dream',  colours: ['green', 'pink', 'blue', 'purple', 'yellow', 'orange'] }
     ];
     const state = { template: 'dream', colour: 'green' };
     const cache = { key: '', url: '', w: 0, h: 0 };
+
+    // templates that are drawn by this file (everything except the original meadow)
+    const isCustom = () => state.template === 'dream' || state.template === 'gingham';
+    const buildCurrent = () => (state.template === 'gingham' ? buildGingham() : buildDream());
 
     function isStrip() { return Boolean(photoData) && shouldContainPhoto(photoData); }
 
     function applyColourOverride() {
         const c = COLOURS[state.colour];
         window.stripColourOverride = (state.template === 'meadow' && c) ? { h: c.h, s: c.s } : null;
+    }
+
+    // ---------------- RP logo (shared) ----------------
+    let logoImg = null;
+    async function getLogo() {
+        if (logoImg) return logoImg;
+        const candidates = [
+            (document.querySelector('.rp-bear-shirt img') || {}).src,
+            '/assets/static/rpLogo.png',
+            '/assets/rp-logo.png',
+            '/assets/propsforphototaking/rp-logo.png'
+        ].filter(Boolean);
+        for (const src of candidates) {
+            try { logoImg = await loadImageElement(src); return logoImg; } catch (e) { /* try next */ }
+        }
+        return null;   // not cached, so it is retried next time
     }
 
     // ---------------- picker UI ----------------
@@ -10161,7 +10182,7 @@ function resetInactivityTimer() {
         if (box) box.style.display = 'none';
     }
 
-    // ---------------- Gingham Dream drawing ----------------
+    // ---------------- shared drawing helpers ----------------
     const hsl = (h, s, l, a) => (a == null ? `hsl(${h},${s}%,${l}%)` : `hsla(${h},${s}%,${l}%,${a})`);
 
     function palette() {
@@ -10173,7 +10194,9 @@ function resetInactivityTimer() {
             bow: hsl(h, s - 5, 30), bowLine: hsl(h, s, 62),
             clover: hsl(h, s - 5, 36), cloverLight: hsl(h, s, 52),
             tag: hsl(h, s - 20, 34), pill: hsl(h, s - 10, 40),
-            coat: hsl(h, s + 5, 48), coatDark: hsl(h, s, 34)
+            coat: hsl(h, s + 5, 48), coatDark: hsl(h, s, 34),
+            plaque: hsl(h, s + 20, 98), shadow: hsl(h, s, 20, 0.3),
+            badgeTop: hsl(h, s - 5, 44), badgeBottom: hsl(h, s - 5, 30)
         };
     }
 
@@ -10287,8 +10310,135 @@ function resetInactivityTimer() {
         ctx.beginPath(); ctx.arc(0, -78, 5, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
         ctx.restore();
     }
-}
-(function () {
+
+    // ---------------- Gingham Dream (bow + clover + mascot, with RP logo) ----------------
+    async function buildGingham() {
+        const P = palette();
+        const logo = await getLogo();
+        const name = (userData.name || '').trim();
+        const key = [photoData.length, photoData.slice(-40), name, state.colour, logo ? 'L' : 'N', 'gingham1'].join('|');
+        if (cache.key === key) return cache;
+
+        const img = await loadImageElement(photoData);
+        const g = 12;
+        const srcCellW = img.naturalWidth - g * 2;
+        const srcCellH = srcCellW * 3 / 4;
+        const n = Math.max(1, Math.round((img.naturalHeight - g) / (srcCellH + g)));
+        const realCellH = (img.naturalHeight - g * (n + 1)) / n;
+
+        const W = 600, cellW = 440, cellH = 330, gap = 34, top = 64, footer = 270;
+        const H = top + n * cellH + (n - 1) * gap + footer;
+        const xs = [56, 104, 64];
+        const cellX = (i) => xs[i % xs.length];
+        const cellY = (i) => top + i * (cellH + gap);
+        const E = top + n * cellH + (n - 1) * gap;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        gingham(ctx, W, H, P);
+        ctx.strokeStyle = P.edge; ctx.lineWidth = 14; ctx.strokeRect(7, 7, W - 14, H - 14);
+
+        // photos: white border, soft shadow, slight alternating tilt
+        for (let i = 0; i < n; i++) {
+            const pad = 5;
+            ctx.save();
+            ctx.translate(cellX(i) + cellW / 2, cellY(i) + cellH / 2);
+            ctx.rotate(i % 2 === 0 ? -0.018 : 0.018);
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 5;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.roundRect(-cellW / 2 - pad, -cellH / 2 - pad, cellW + pad * 2, cellH + pad * 2, 8); ctx.fill();
+            ctx.restore();
+            ctx.beginPath(); ctx.roundRect(-cellW / 2, -cellH / 2, cellW, cellH, 3); ctx.clip();
+            ctx.drawImage(img, g, g + i * (realCellH + g), srcCellW, realCellH, -cellW / 2, -cellH / 2, cellW, cellH);
+            ctx.restore();
+        }
+
+        // "Dream" tag overhanging the top-right corner of the first photo
+        ctx.save();
+        ctx.font = '700 26px Georgia, serif';
+        const tw = ctx.measureText(TAG_TEXT).width + 36;
+        const tx = cellX(0) + cellW - tw + 14, ty = cellY(0) - 14;
+        ctx.fillStyle = P.tag; ctx.globalAlpha = 0.95;
+        ctx.beginPath(); ctx.roundRect(tx, ty, tw, 40, 4); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(TAG_TEXT, tx + tw / 2, ty + 21);
+        ctx.restore();
+
+        // gingham bow on photos 1, 3, ... and four-leaf clover on photos 2, 4, ...
+        for (let i = 0; i < n; i++) {
+            if (i % 2 === 0) bow(ctx, cellX(i) + 6, cellY(i) + cellH - 30, 34, P);
+            else cloverIcon(ctx, cellX(i) + cellW - 26, cellY(i) + cellH - 30, 30, P);
+        }
+
+        // mascot bottom-left
+        mascot(ctx, 84, H - 34, P);
+
+        // plaque with RP logo + ESG badge
+        const px = 150, pw = W - 200, ph = 92, py = E + 30;
+        ctx.save();
+        ctx.shadowColor = P.shadow; ctx.shadowBlur = 16; ctx.shadowOffsetY = 5;
+        ctx.fillStyle = P.plaque;
+        ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 30); ctx.fill();
+        ctx.restore();
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const leftCx = px + pw * 0.27, midY = py + ph / 2;
+        if (logo) {
+            const sc = Math.min(110 / logo.naturalWidth, 46 / logo.naturalHeight);
+            const lw = logo.naturalWidth * sc, lh = logo.naturalHeight * sc;
+            ctx.drawImage(logo, leftCx - lw / 2, py + 10, lw, lh);
+        } else {
+            cloverIcon(ctx, leftCx - 6, py + 30, 14, P);
+        }
+        ctx.fillStyle = P.dark;
+        ctx.font = '900 18px Arial, sans-serif';
+        ctx.fillText('REPUBLIC', leftCx, py + 66);
+        ctx.font = '800 14px Arial, sans-serif';
+        ctx.fillText('POLYTECHNIC', leftCx, py + 82);
+
+        ctx.strokeStyle = P.stripe; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(px + pw * 0.52, py + 18); ctx.lineTo(px + pw * 0.52, py + ph - 18); ctx.stroke();
+
+        const esgCx = px + pw * 0.77, bw = 132, bh = 62;
+        const eg = ctx.createLinearGradient(0, midY - bh / 2, 0, midY + bh / 2);
+        eg.addColorStop(0, P.badgeTop); eg.addColorStop(1, P.badgeBottom);
+        ctx.fillStyle = eg;
+        ctx.beginPath(); ctx.roundRect(esgCx - bw / 2, midY - bh / 2, bw, bh, 18); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 28px Arial, sans-serif';
+        ctx.fillText('ESG', esgCx, midY - 10);
+        ctx.font = '600 10px Arial, sans-serif';
+        ctx.fillText('Environmental,', esgCx, midY + 10);
+        ctx.fillText('Social & Governance', esgCx, midY + 22);
+
+        // name pill + date
+        const cx2 = px + pw / 2;
+        const label = name || 'Visitor';
+        ctx.font = '700 24px Arial, sans-serif';
+        const lw2 = Math.min(300, Math.max(150, ctx.measureText(label).width + 50));
+        ctx.fillStyle = P.plaque;
+        ctx.beginPath(); ctx.roundRect(cx2 - lw2 / 2, E + 142, lw2, 44, 22); ctx.fill();
+        ctx.fillStyle = P.dark;
+        ctx.fillText(label, cx2, E + 165);
+
+        const dateText = new Date().toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) + '  ·  RP ESG';
+        ctx.font = '600 18px Arial, sans-serif';
+        const dw = ctx.measureText(dateText).width + 36;
+        ctx.fillStyle = P.pill;
+        ctx.beginPath(); ctx.roundRect(cx2 - dw / 2, E + 198, dw, 34, 17); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(dateText, cx2, E + 216);
+
+        cache.key = key; cache.url = canvas.toDataURL('image/png'); cache.w = W; cache.h = H;
+        return cache;
+    }
+
+    // ---------------- Nature Gingham (leaves, hills, daisies) ----------------
     async function buildDream() {
         const c0 = COLOURS[state.colour] || COLOURS.green;
         const h = c0.h, s = c0.s;
@@ -10303,19 +10453,7 @@ function resetInactivityTimer() {
             badgeTop: hsl2(h, s - 5, 44), badgeBottom: hsl2(h, s - 5, 30), shadow: hsl2(h, s, 20, 0.3)
         };
 
-        if (buildDream._logo === undefined) {
-            const candidates = [
-                (document.querySelector('.rp-bear-shirt img') || {}).src,
-                '/assets/static/rpLogo.png',
-                '/assets/rp-logo.png',
-                '/assets/propsforphototaking/rp-logo.png'
-            ].filter(Boolean);
-            buildDream._logo = null;
-            for (const src of candidates) {
-                try { buildDream._logo = await loadImageElement(src); break; } catch (e) { /* try next */ }
-            }
-        }
-        const logo = buildDream._logo;
+        const logo = await getLogo();
 
         const name = (userData.name || '').trim();
         const key = [photoData.length, photoData.slice(-40), name, state.colour, logo ? 'L' : 'N', 'dream2'].join('|');
@@ -10538,544 +10676,35 @@ function resetInactivityTimer() {
 
         renderPicker(frame);
         applyColourOverride();
-        if (state.template !== 'dream') return updatePreviewBeforePicker.apply(this, arguments);
+        if (!isCustom()) return updatePreviewBeforePicker.apply(this, arguments);
 
         stopBoomerangPreview();
         const overlay = document.getElementById('selected-overlay');
         if (overlay) overlay.style.setProperty('display', 'none', 'important');
         previewPhoto.style.setProperty('object-fit', 'contain', 'important');
-        buildDream()
+        const tplAtStart = state.template, colourAtStart = state.colour;
+        buildCurrent()
             .then((r) => {
-                if (!isStrip() || state.template !== 'dream') return;
+                // ignore results that arrive after the person switched template/colour
+                if (!isStrip() || state.template !== tplAtStart || state.colour !== colourAtStart) return;
                 const w = currentDevice === 'mobile' ? 240 : 300;
                 frame.style.setProperty('width', w + 'px', 'important');
                 frame.style.setProperty('height', Math.round(w * r.h / r.w) + 'px', 'important');
                 previewPhoto.src = r.url;
             })
-            .catch((e) => console.error('Nature Gingham preview failed:', e));
+            .catch((e) => console.error('Strip template preview failed:', e));
     };
 
     const processStillBeforePicker = processFinalPhotoFromStillFrame;
     processFinalPhotoFromStillFrame = function () {
-        if (!isStrip() || state.template !== 'dream') {
+        if (!isStrip() || !isCustom()) {
             applyColourOverride();
             return processStillBeforePicker.apply(this, arguments);
         }
-        return buildDream()
+        return buildCurrent()
             .then((r) => { userData.processedPhoto = r.url; })
             .catch((e) => {
-                console.error('Nature Gingham failed, using previous frame:', e);
-                return processStillBeforePicker.apply(this, arguments);
-            });
-    };
-
-    ['returnToLandingPage', 'submitAnother', 'goHomeFromFeedbackForm'].forEach((fnName) => {
-        const original = window[fnName];
-        if (typeof original !== 'function') return;
-        window[fnName] = function () {
-            const result = original.apply(this, arguments);
-            state.template = 'dream'; state.colour = 'green';
-            window.stripColourOverride = null;
-            hidePicker();
-            return result;
-        };
-    });
-})());
-(function stripTemplatePicker() {
-    const TAG_TEXT = 'Dream';   // label on the first photo of Gingham Dream
-
-    const COLOURS = {
-        green:  { label: 'Green',  h: 100, s: 45, dot: '#8fce5a' },
-        pink:   { label: 'Pink',   h: 338, s: 55, dot: '#f08fb0' },
-        blue:   { label: 'Blue',   h: 208, s: 50, dot: '#7fb4ea' },
-        purple: { label: 'Purple', h: 268, s: 42, dot: '#b18fe0' },
-        yellow: { label: 'Yellow', h: 45,  s: 65, dot: '#f2cf55' },
-        orange: { label: 'Orange', h: 24,  s: 65, dot: '#f1a56a' }
-    };
-    const TEMPLATES = [
-        { id: 'meadow', name: 'Floral Meadow', colours: ['theme', 'green', 'pink', 'blue', 'purple', 'yellow', 'orange'] },
-        { id: 'dream',  name: 'Nature Gingham', colours: ['green', 'pink', 'blue', 'purple', 'yellow', 'orange'] }
-    ];
-    const state = { template: 'dream', colour: 'green' };
-    const cache = { key: '', url: '', w: 0, h: 0 };
-
-    function isStrip() { return Boolean(photoData) && shouldContainPhoto(photoData); }
-
-    function applyColourOverride() {
-        const c = COLOURS[state.colour];
-        window.stripColourOverride = (state.template === 'meadow' && c) ? { h: c.h, s: c.s } : null;
-    }
-
-    // ---------------- picker UI ----------------
-    function ensurePicker(frame) {
-        let box = document.getElementById('strip-template-picker');
-        if (!box) {
-            box = document.createElement('div');
-            box.id = 'strip-template-picker';
-            box.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;margin:10px 0;';
-            frame.parentNode.insertBefore(box, frame);
-        }
-        return box;
-    }
-
-    function renderPicker(frame) {
-        const box = ensurePicker(frame);
-        const tpl = TEMPLATES.find(t => t.id === state.template);
-        box.innerHTML = '';
-
-        const row1 = document.createElement('div');
-        row1.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;';
-        TEMPLATES.forEach((t) => {
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.textContent = t.name;
-            b.style.cssText = 'padding:8px 16px;border-radius:999px;font:700 14px Arial,sans-serif;cursor:pointer;border:2px solid #16a34a;' +
-                (t.id === state.template ? 'background:#16a34a;color:#fff;' : 'background:#fff;color:#17382a;');
-            b.addEventListener('click', () => {
-                state.template = t.id;
-                if (!t.colours.includes(state.colour)) state.colour = t.colours[0];
-                applyColourOverride();
-                resetInactivityTimer();
-                updatePreviewWithCutout();
-            });
-            row1.appendChild(b);
-        });
-
-        const row2 = document.createElement('div');
-        row2.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;';
-        tpl.colours.forEach((id) => {
-            const c = COLOURS[id];
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.title = c ? c.label : 'Match theme';
-            b.setAttribute('aria-label', b.title);
-            const active = id === state.colour;
-            b.style.cssText = 'width:34px;height:34px;border-radius:50%;cursor:pointer;padding:0;font:700 11px Arial;' +
-                'border:3px solid ' + (active ? '#17382a' : '#fff') + ';box-shadow:0 0 0 1px #cbd5e1;' +
-                'background:' + (c ? c.dot : 'linear-gradient(135deg,#8fce5a,#f08fb0,#7fb4ea)') + ';';
-            b.addEventListener('click', () => {
-                state.colour = id;
-                applyColourOverride();
-                resetInactivityTimer();
-                updatePreviewWithCutout();
-            });
-            row2.appendChild(b);
-        });
-
-        box.appendChild(row1);
-        box.appendChild(row2);
-        box.style.display = 'flex';
-    }
-
-    function hidePicker() {
-        const box = document.getElementById('strip-template-picker');
-        if (box) box.style.display = 'none';
-    }
-
-    // ---------------- Gingham Dream drawing ----------------
-    const hsl = (h, s, l, a) => (a == null ? `hsl(${h},${s}%,${l}%)` : `hsla(${h},${s}%,${l}%,${a})`);
-
-    function palette() {
-        const c = COLOURS[state.colour] || COLOURS.green;
-        const h = c.h, s = c.s;
-        return {
-            base: hsl(h, s + 20, 94), stripe: hsl(h, s + 10, 72),
-            edge: hsl(h, s + 15, 88), dark: hsl(h, s - 15, 28),
-            bow: hsl(h, s - 5, 30), bowLine: hsl(h, s, 62),
-            clover: hsl(h, s - 5, 36), cloverLight: hsl(h, s, 52),
-            tag: hsl(h, s - 20, 34), pill: hsl(h, s - 10, 40),
-            coat: hsl(h, s + 5, 48), coatDark: hsl(h, s, 34)
-        };
-    }
-
-    function gingham(ctx, W, H, P) {
-        const c = 40;
-        ctx.fillStyle = P.base;
-        ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = P.stripe;
-        ctx.globalAlpha = 0.5;
-        for (let x = 0; x < W; x += c * 2) ctx.fillRect(x, 0, c, H);
-        for (let y = 0; y < H; y += c * 2) ctx.fillRect(0, y, W, c);
-        ctx.globalAlpha = 1;
-    }
-
-    function bow(ctx, x, y, s, P) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(-0.35);
-        const loops = new Path2D();
-        loops.moveTo(0, 0);
-        loops.bezierCurveTo(-s * 0.9, -s * 0.9, -s * 1.15, s * 0.8, 0, 0);
-        loops.moveTo(0, 0);
-        loops.bezierCurveTo(s * 0.9, -s * 0.9, s * 1.15, s * 0.8, 0, 0);
-        const tails = new Path2D();
-        tails.moveTo(-2, 4); tails.lineTo(-s * 0.55, s * 1.05); tails.lineTo(-s * 0.2, s * 0.95); tails.lineTo(2, 8);
-        tails.moveTo(2, 4); tails.lineTo(s * 0.5, s * 1.1); tails.lineTo(s * 0.18, s * 0.98); tails.lineTo(-2, 8);
-        [loops, tails].forEach((path) => {
-            ctx.fillStyle = P.bow;
-            ctx.fill(path);
-            ctx.save();
-            ctx.clip(path);
-            ctx.strokeStyle = P.bowLine;
-            ctx.globalAlpha = 0.55;
-            ctx.lineWidth = 3;
-            for (let i = -s * 1.4; i < s * 1.4; i += 9) {
-                ctx.beginPath(); ctx.moveTo(i, -s * 1.2); ctx.lineTo(i, s * 1.3); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-s * 1.4, i); ctx.lineTo(s * 1.4, i); ctx.stroke();
-            }
-            ctx.restore();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.stroke(path);
-        });
-        ctx.fillStyle = P.bow;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(-s * 0.16, -s * 0.2, s * 0.32, s * 0.4, 5); ctx.fill(); ctx.stroke();
-        ctx.restore();
-    }
-
-    function cloverIcon(ctx, x, y, size, P) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.strokeStyle = P.clover;
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(size * 0.2, size * 0.7, size * 0.55, size * 1.1); ctx.stroke();
-        for (let i = 0; i < 4; i++) {
-            ctx.save();
-            ctx.rotate((Math.PI / 2) * i + Math.PI / 4);
-            ctx.beginPath();
-            ctx.moveTo(0, -size * 0.06);
-            ctx.bezierCurveTo(-size * 0.6, -size * 0.05, -size * 0.65, -size * 0.95, -size * 0.22, -size * 0.9);
-            ctx.bezierCurveTo(-size * 0.08, -size * 0.88, 0, -size * 0.78, 0, -size * 0.7);
-            ctx.bezierCurveTo(0, -size * 0.78, size * 0.08, -size * 0.88, size * 0.22, -size * 0.9);
-            ctx.bezierCurveTo(size * 0.65, -size * 0.95, size * 0.6, -size * 0.05, 0, -size * 0.06);
-            ctx.closePath();
-            ctx.fillStyle = i % 2 ? P.clover : P.cloverLight;
-            ctx.fill();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.restore();
-        }
-        ctx.restore();
-    }
-
-    // little hooded character, bottom-left (replace with your own PNG if you like)
-    function mascot(ctx, cx, feetY, P) {
-        ctx.save();
-        ctx.translate(cx, feetY);
-        ctx.lineJoin = 'round';
-        // boots
-        ctx.fillStyle = '#e5484d';
-        ctx.beginPath(); ctx.roundRect(-24, -16, 20, 16, 6); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(4, -16, 20, 16, 6); ctx.fill();
-        // coat
-        ctx.fillStyle = P.coat;
-        ctx.beginPath(); ctx.moveTo(-30, -16); ctx.lineTo(-22, -62); ctx.lineTo(22, -62); ctx.lineTo(30, -16); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.stroke();
-        ctx.fillStyle = P.coatDark;
-        ctx.fillRect(-2, -60, 4, 42);
-        // head + hood
-        ctx.fillStyle = P.coat;
-        ctx.beginPath(); ctx.arc(0, -90, 38, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        [-20, 20].forEach((ex) => {          // hood "eyes"
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath(); ctx.arc(ex, -124, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = '#1f2937';
-            ctx.beginPath(); ctx.arc(ex, -123, 5, 0, Math.PI * 2); ctx.fill();
-        });
-        ctx.fillStyle = '#fde8d8';           // face
-        ctx.beginPath(); ctx.ellipse(0, -86, 27, 26, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#f3f4f6';           // fringe
-        ctx.beginPath(); ctx.ellipse(0, -104, 25, 11, 0, Math.PI, 0); ctx.fill();
-        ctx.fillStyle = '#1f2937';
-        ctx.beginPath(); ctx.arc(-10, -86, 3.2, 0, Math.PI * 2); ctx.arc(10, -86, 3.2, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(244,114,182,0.5)';
-        ctx.beginPath(); ctx.arc(-17, -78, 5, 0, Math.PI * 2); ctx.arc(17, -78, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, -78, 5, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
-        ctx.restore();
-    }
-
-    // ---------------- Nature Gingham (current design) ----------------
-    async function buildDream() {
-        const c0 = COLOURS[state.colour] || COLOURS.green;
-        const h = c0.h, s = c0.s;
-        const sat = (v) => Math.max(0, Math.min(95, v));
-        const hsl2 = (hh, ss, l, a) => (a == null ? `hsl(${hh},${sat(ss)}%,${l}%)` : `hsla(${hh},${sat(ss)}%,${l}%,${a})`);
-        const P = {
-            base: hsl2(h, s + 20, 94), stripe: hsl2(h, s + 10, 72), edge: hsl2(h, s + 15, 88),
-            dark: hsl2(h, s - 10, 22),
-            leaf1: hsl2(h, s + 5, 40), leaf2: hsl2(h, s, 54), leaf3: hsl2(h, s - 5, 68), leafEdge: hsl2(h, s, 26),
-            hill1: hsl2(h, s, 82), hill2: hsl2(h, s + 5, 66), hill3: hsl2(h, s + 8, 46),
-            tag: hsl2(h, s - 20, 34), plaque: hsl2(h, s + 20, 98),
-            badgeTop: hsl2(h, s - 5, 44), badgeBottom: hsl2(h, s - 5, 30), shadow: hsl2(h, s, 20, 0.3)
-        };
-
-        if (buildDream._logo === undefined) {
-            const candidates = [
-                (document.querySelector('.rp-bear-shirt img') || {}).src,
-                '/assets/static/rpLogo.png',
-                '/assets/rp-logo.png',
-                '/assets/propsforphototaking/rp-logo.png'
-            ].filter(Boolean);
-            buildDream._logo = null;
-            for (const src of candidates) {
-                try { buildDream._logo = await loadImageElement(src); break; } catch (e) { /* try next */ }
-            }
-        }
-        const logo = buildDream._logo;
-
-        const name = (userData.name || '').trim();
-        const key = [photoData.length, photoData.slice(-40), name, state.colour, logo ? 'L' : 'N', 'dream2'].join('|');
-        if (cache.key === key) return cache;
-
-        const img = await loadImageElement(photoData);
-        const g = 12;
-        const srcCellW = img.naturalWidth - g * 2;
-        const srcCellH = srcCellW * 3 / 4;
-        const n = Math.max(1, Math.round((img.naturalHeight - g) / (srcCellH + g)));
-        const realCellH = (img.naturalHeight - g * (n + 1)) / n;
-
-        const W = 600, cellW = 460, cellH = 345, gap = 30, top = 70, footer = 280;
-        const H = top + n * cellH + (n - 1) * gap + footer;
-        const xs = [44, 96, 54];
-        const cellX = (i) => xs[i % xs.length];
-        const cellY = (i) => top + i * (cellH + gap);
-        const E = top + n * cellH + (n - 1) * gap;
-
-        const canvas = document.createElement('canvas');
-        canvas.width = W; canvas.height = H;
-        const ctx = canvas.getContext('2d');
-
-        const leaf = (x, y, len, rot, fill) => {
-            ctx.save();
-            ctx.translate(x, y); ctx.rotate(rot);
-            ctx.fillStyle = fill; ctx.strokeStyle = P.leafEdge; ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.quadraticCurveTo(len * 0.5, -len * 0.36, len, 0);
-            ctx.quadraticCurveTo(len * 0.5, len * 0.36, 0, 0);
-            ctx.fill(); ctx.stroke();
-            ctx.globalAlpha = 0.5;
-            ctx.beginPath(); ctx.moveTo(len * 0.05, 0); ctx.lineTo(len * 0.85, 0); ctx.stroke();
-            ctx.restore();
-        };
-        const branch = (x, y, len, rot) => {
-            ctx.save();
-            ctx.translate(x, y); ctx.rotate(rot);
-            ctx.strokeStyle = P.leaf1; ctx.lineWidth = 4; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(len * 0.5, -len * 0.08, len, 0); ctx.stroke();
-            for (let i = 1; i <= 6; i++) {
-                const t = i / 7, px = len * t, sz = len * 0.28 * (1 - t * 0.3);
-                leaf(px, 0, sz, -0.8, i % 2 ? P.leaf2 : P.leaf1);
-                leaf(px, 0, sz, 0.8, i % 2 ? P.leaf1 : P.leaf3);
-            }
-            leaf(len, 0, len * 0.22, 0, P.leaf2);
-            ctx.restore();
-        };
-        const daisy = (x, y, r) => {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.fillStyle = '#ffffff'; ctx.strokeStyle = P.leaf3; ctx.lineWidth = 1.5;
-            for (let i = 0; i < 8; i++) {
-                ctx.save(); ctx.rotate((Math.PI * 2 * i) / 8);
-                ctx.beginPath(); ctx.ellipse(0, -r * 0.7, r * 0.26, r * 0.5, 0, 0, Math.PI * 2);
-                ctx.fill(); ctx.stroke(); ctx.restore();
-            }
-            ctx.fillStyle = '#f6c945';
-            ctx.beginPath(); ctx.arc(0, 0, r * 0.3, 0, Math.PI * 2); ctx.fill();
-            ctx.restore();
-        };
-        const clover = (x, y, size) => {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.lineJoin = 'round';
-            for (let i = 0; i < 4; i++) {
-                ctx.save(); ctx.rotate((Math.PI / 2) * i + Math.PI / 4);
-                ctx.beginPath();
-                ctx.moveTo(0, -size * 0.06);
-                ctx.bezierCurveTo(-size * 0.6, -size * 0.05, -size * 0.65, -size * 0.95, -size * 0.22, -size * 0.9);
-                ctx.bezierCurveTo(-size * 0.08, -size * 0.88, 0, -size * 0.78, 0, -size * 0.7);
-                ctx.bezierCurveTo(0, -size * 0.78, size * 0.08, -size * 0.88, size * 0.22, -size * 0.9);
-                ctx.bezierCurveTo(size * 0.65, -size * 0.95, size * 0.6, -size * 0.05, 0, -size * 0.06);
-                ctx.closePath();
-                ctx.fillStyle = i % 2 ? P.leaf1 : P.leaf2;
-                ctx.fill();
-                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.stroke();
-                ctx.restore();
-            }
-            ctx.restore();
-        };
-        const hill = (y, amp, color, shift) => {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(0, H); ctx.lineTo(0, y + shift);
-            ctx.bezierCurveTo(W * 0.25, y - amp, W * 0.4, y + amp, W * 0.62, y - amp * 0.3);
-            ctx.bezierCurveTo(W * 0.8, y - amp * 1.2, W * 0.92, y + amp * 0.4, W, y - amp * 0.5);
-            ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
-        };
-        const grass = (x, y, hgt, color) => {
-            ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineCap = 'round';
-            [-8, 0, 8].forEach((dx, k) => {
-                ctx.beginPath();
-                ctx.moveTo(x + dx, y);
-                ctx.quadraticCurveTo(x + dx + (k - 1) * 4, y - hgt * 0.6, x + dx + (k - 1) * 9, y - hgt * (k === 1 ? 1 : 0.75));
-                ctx.stroke();
-            });
-        };
-
-        const cs = 40;
-        ctx.fillStyle = P.base; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = P.stripe; ctx.globalAlpha = 0.5;
-        for (let x = 0; x < W; x += cs * 2) ctx.fillRect(x, 0, cs, H);
-        for (let y = 0; y < H; y += cs * 2) ctx.fillRect(0, y, W, cs);
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = P.edge; ctx.lineWidth = 14; ctx.strokeRect(7, 7, W - 14, H - 14);
-
-        for (let i = 0; i < n; i++) {
-            const x = cellX(i), y = cellY(i), pad = 9;
-            ctx.save();
-            ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 5;
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath(); ctx.roundRect(x - pad, y - pad, cellW + pad * 2, cellH + pad * 2, 16); ctx.fill();
-            ctx.restore();
-            ctx.save();
-            ctx.beginPath(); ctx.roundRect(x, y, cellW, cellH, 8); ctx.clip();
-            ctx.drawImage(img, g, g + i * (realCellH + g), srcCellW, realCellH, x, y, cellW, cellH);
-            ctx.restore();
-        }
-
-        ctx.save();
-        ctx.font = '700 26px Georgia, serif';
-        const tw = ctx.measureText(TAG_TEXT).width + 36;
-        const tx = cellX(0) + cellW - tw - 12, ty = cellY(0) + 12;
-        ctx.fillStyle = P.tag; ctx.globalAlpha = 0.92;
-        ctx.beginPath(); ctx.roundRect(tx, ty, tw, 40, 4); ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(TAG_TEXT, tx + tw / 2, ty + 21);
-        ctx.restore();
-
-        for (let i = 0; i < n; i++) {
-            const y = cellY(i);
-            if (i % 2 === 0) {
-                branch(W + 6, y + cellH * 0.72, 118, Math.PI - 0.12);
-                daisy(cellX(i) + cellW - 6, y + cellH - 26, 15);
-            } else {
-                branch(-6, y + cellH * 0.3, 118, 0.12);
-                clover(cellX(i) + cellW - 34, y + cellH - 40, 30);
-            }
-        }
-        branch(-6, 44, 100, 0.25);
-        daisy(40, 36, 13);
-        daisy(66, 22, 9);
-
-        hill(E + 50, 16, P.hill1, 0);
-        hill(E + 92, 18, P.hill2, 10);
-        hill(E + 140, 14, P.hill3, 6);
-        [70, 150, 250, 340, 430, 520].forEach((gx, k) => grass(gx, E + 128 + (k % 2) * 18, 20, P.leaf1));
-        daisy(40, E + 150, 12); daisy(W - 44, E + 160, 12); daisy(W - 80, E + 132, 9);
-        branch(-6, H - 10, 120, -Math.PI * 0.35);
-        branch(W + 6, H - 10, 120, -Math.PI * 0.65);
-
-        const px = 70, pw = W - 140, ph = 100, py = E + 34;
-        ctx.save();
-        ctx.shadowColor = P.shadow; ctx.shadowBlur = 16; ctx.shadowOffsetY = 5;
-        ctx.fillStyle = P.plaque;
-        ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 36); ctx.fill();
-        ctx.restore();
-
-        const midY = py + ph / 2, leftCx = px + pw * 0.27;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        if (logo) {
-            const sc = Math.min(120 / logo.naturalWidth, 52 / logo.naturalHeight);
-            const lw = logo.naturalWidth * sc, lh = logo.naturalHeight * sc;
-            ctx.drawImage(logo, leftCx - lw / 2, py + 12, lw, lh);
-        } else {
-            leaf(leftCx - 14, py + 38, 28, -0.9, P.leaf2);
-        }
-        ctx.fillStyle = P.dark;
-        ctx.font = '900 20px Arial, sans-serif';
-        ctx.fillText('REPUBLIC', leftCx, py + 72);
-        ctx.font = '800 16px Arial, sans-serif';
-        ctx.fillText('POLYTECHNIC', leftCx, py + 90);
-
-        ctx.strokeStyle = P.leaf3; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(px + pw * 0.5, py + 20); ctx.lineTo(px + pw * 0.5, py + ph - 20); ctx.stroke();
-
-        const esgCx = px + pw * 0.75, bw = 170, bh = 74;
-        const eg = ctx.createLinearGradient(0, midY - bh / 2, 0, midY + bh / 2);
-        eg.addColorStop(0, P.badgeTop); eg.addColorStop(1, P.badgeBottom);
-        ctx.fillStyle = eg;
-        ctx.beginPath(); ctx.roundRect(esgCx - bw / 2, midY - bh / 2, bw, bh, 22); ctx.fill();
-        leaf(esgCx - 70, midY - 10, 22, -0.9, '#ffffff');
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 36px Arial, sans-serif';
-        ctx.fillText('ESG', esgCx + 10, midY - 12);
-        ctx.font = '600 12px Arial, sans-serif';
-        ctx.fillText('Environmental,', esgCx, midY + 13);
-        ctx.fillText('Social & Governance', esgCx, midY + 27);
-
-        const label = name || 'Visitor';
-        ctx.font = '700 24px Arial, sans-serif';
-        const lw2 = Math.min(360, Math.max(150, ctx.measureText(label).width + 50));
-        ctx.fillStyle = P.plaque;
-        ctx.beginPath(); ctx.roundRect(W / 2 - lw2 / 2, E + 160, lw2, 44, 22); ctx.fill();
-        ctx.fillStyle = P.dark;
-        ctx.fillText(label, W / 2, E + 183);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '600 20px Arial, sans-serif';
-        ctx.fillText(new Date().toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) + '  ·  RP ESG', W / 2, E + 232);
-
-        cache.key = key; cache.url = canvas.toDataURL('image/png'); cache.w = W; cache.h = H;
-        return cache;
-    }
-
-    // ---------------- hooks (chained on top of the existing strip frames) ----------------
-    const updatePreviewBeforePicker = updatePreviewWithCutout;
-    updatePreviewWithCutout = function () {
-        const previewPhoto = document.getElementById('preview-photo');
-        const frame = previewPhoto && previewPhoto.closest('.preview-frame');
-
-        if (!previewPhoto || !frame || !isStrip()) {
-            hidePicker();
-            window.stripColourOverride = null;
-            return updatePreviewBeforePicker.apply(this, arguments);
-        }
-
-        renderPicker(frame);
-        applyColourOverride();
-        if (state.template !== 'dream') return updatePreviewBeforePicker.apply(this, arguments);
-
-        stopBoomerangPreview();
-        const overlay = document.getElementById('selected-overlay');
-        if (overlay) overlay.style.setProperty('display', 'none', 'important');
-        previewPhoto.style.setProperty('object-fit', 'contain', 'important');
-        buildDream()
-            .then((r) => {
-                if (!isStrip() || state.template !== 'dream') return;
-                const w = currentDevice === 'mobile' ? 240 : 300;
-                frame.style.setProperty('width', w + 'px', 'important');
-                frame.style.setProperty('height', Math.round(w * r.h / r.w) + 'px', 'important');
-                previewPhoto.src = r.url;
-            })
-            .catch((e) => console.error('Nature Gingham preview failed:', e));
-    };
-
-    const processStillBeforePicker = processFinalPhotoFromStillFrame;
-    processFinalPhotoFromStillFrame = function () {
-        if (!isStrip() || state.template !== 'dream') {
-            applyColourOverride();
-            return processStillBeforePicker.apply(this, arguments);
-        }
-        return buildDream()
-            .then((r) => { userData.processedPhoto = r.url; })
-            .catch((e) => {
-                console.error('Nature Gingham failed, using previous frame:', e);
+                console.error('Strip template failed, using previous frame:', e);
                 return processStillBeforePicker.apply(this, arguments);
             });
     };
@@ -11092,5 +10721,3 @@ function resetInactivityTimer() {
         };
     });
 })();
-
-
