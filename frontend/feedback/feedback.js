@@ -1,15 +1,5 @@
 
-//
-// 1. PLEDGE TOPIC BADGE ASSIGNMENT
-//    userData.pledgeTopic             - Store selected pledge topic for badge mapping (DONE BY XY)
-//    function submitPledge()          - Validate pledge topic before continuing to photo flow (DONE BY XY)
-//
-// 2. OPTIONAL PLEDGE FLOW
-//    function skipPledge()            - Let visitors continue without making a pledge (DONE BY XY)
-//    userData.pledgeSkipped           - Mark skipped pledge submissions for Feedback Contributor badge (DONE BY XY)
-//    function continueAfterPledgeChoice - Shared navigation after pledge or skip choice (DONE BY XY)
-//
-// 3. REWARD MESSAGE CLEANUP
+
 //    const BADGE_LEAF_REWARDS         - Active reward messages for Feedback Contributor plus 6 topic badges (DONE BY XY)
 //    Removed inactive badges          - Eco Warrior and Commitment Champion removed from reward map (DONE BY XY)
 //
