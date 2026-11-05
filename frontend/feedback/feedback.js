@@ -1,6 +1,4 @@
-// ============================================================
-// XY CHANGE SUMMARY (DONE BY XY)
-// ============================================================
+
 //
 // 1. PLEDGE TOPIC BADGE ASSIGNMENT
 //    userData.pledgeTopic             - Store selected pledge topic for badge mapping (DONE BY XY)
