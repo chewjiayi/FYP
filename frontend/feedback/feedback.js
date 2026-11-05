@@ -10592,7 +10592,7 @@ function resetInactivityTimer() {
 (function esgCentreFrame() {
     const THEME_ID = 'esg-centre';
     const THEME_NAME = 'ESG Centre';
-    const FRAME_SRC = '/assets/overlays/rp-esg-centre-frame.png';   // <-- put your PNG here
+    const FRAME_SRC = '/assets/overlays/rp-esg-centre-frame.png';   
     const MAKE_DEFAULT = true;                                      // select it automatically on the style page
 
     // Cutout position as a fraction of the frame image (measured from your 1447 x 1087 frame).
