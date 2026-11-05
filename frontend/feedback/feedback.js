@@ -9100,9 +9100,7 @@ function resetInactivityTimer() {
     };
 })();
 
-// ============================================================================
-// NON-MIRRORED CAMERA (final) - ignores the .mirror class, uses data-flip instead
-// ============================================================================
+
 (function noMirrorFinal() {
     const old = document.getElementById('no-mirror-default-style');
     if (old) old.remove();
