@@ -7633,3 +7633,66 @@ input:checked + .slider:before {
     position: relative;
     height: 200px;
 }
+
+/* ==================== HIBERNATION POLICY (BY ZHI RUO) ==================== */
+
+.hibernation-section {
+    margin-top: 25px;
+}
+
+.hib-intro {
+    margin: 0 0 20px 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.hib-master-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.hib-field-hint {
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Plain-English "what this policy does" box */
+.hib-summary {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    color: #1e293b;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.hib-enforce-warning {
+    margin: 0;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #991b1b;
+    font-size: 13px;
+}
+
+.hib-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* JS adds this to hide a field group (e.g. idle fields when type = scheduled) */
+.hib-hidden {
+    display: none !important;
+}
+
+/* JS adds this to grey out the rule cards while the master switch is OFF */
+.hib-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}

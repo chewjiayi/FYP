@@ -3464,6 +3464,140 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Hibernation policy (BY ZHI RUO) -->
+                    <div class="schedule-section hibernation-section" id="hibernation-policy-section">
+                        <div class="section-header">
+                            <h3>Hibernation Policy</h3>
+                            <span id="hib-status-badge" class="status-badge inactive">Loading...</span>
+                        </div>
+                        <p class="hib-intro">
+                            Decide when the kiosk machine should hibernate to save power. This sets the rules only;
+                            in Dry Run mode it just records what would have happened.
+                        </p>
+
+                        <form id="hibernation-form" onsubmit="event.preventDefault(); saveHibernationPolicy();">
+
+                            <!-- Master switch -->
+                            <div class="server-mode-control">
+                                <h4>Policy Status</h4>
+                                <div class="hib-master-row">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="hib-enabled" onchange="onHibernationFormChange()">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <div class="mode-info">
+                                        <span id="hib-enabled-label">Hibernation policy is OFF</span>
+                                        <p>Turn on to let this policy decide when the machine hibernates</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- When to hibernate -->
+                            <div class="server-mode-control" id="hib-rules-card">
+                                <h4>When to Hibernate</h4>
+
+                                <div class="form-group">
+                                    <label for="hib-policy-type">Policy Type</label>
+                                    <select id="hib-policy-type" onchange="onHibernationFormChange()">
+                                        <option value="scheduled">At a set time (scheduled)</option>
+                                        <option value="idle">After no visitor activity (idle)</option>
+                                        <option value="scheduled_or_idle">Whichever comes first</option>
+                                    </select>
+                                </div>
+
+                                <!-- Scheduled rule -->
+                                <div id="hib-scheduled-fields">
+                                    <div class="form-group">
+                                        <label for="hib-time">Hibernate Time</label>
+                                        <input type="time" id="hib-time" value="22:00" oninput="onHibernationFormChange()">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Days</label>
+                                        <div class="days-selection">
+                                            <div class="day-checkbox">
+                                                <input type="checkbox" id="hib-day-0" value="0" onchange="onHibernationFormChange()">
+                                                <label for="hib-day-0" title="Sunday">S</label>
+                                            </div>
+                                            <div class="day-checkbox">
+                                                <input type="checkbox" id="hib-day-1" value="1" onchange="onHibernationFormChange()">
+                                                <label for="hib-day-1" title="Monday">M</label>
+                                            </div>
+                                            <div class="day-checkbox">
+                                                <input type="checkbox" id="hib-day-2" value="2" onchange="onHibernationFormChange()">
+                                                <label for="hib-day-2" title="Tuesday">T</label>
+                                            </div>
+                                            <div class="day-checkbox">
+                                                <input type="checkbox" id="hib-day-3" value="3" onchange="onHibernationFormChange()">
+                                                <label for="hib-day-3" title="Wednesday">W</label>
+                                            </div>
+                                            <div class="day-checkbox">
+                                                <input type="checkbox" id="hib-day-4" value="4" onchange="onHibernationFormChange()">
+                                                <label for="hib-day-4" title="Thursday">T</label>
+                                            </div>
+                                            <div class="day-checkbox">
+                                                <input type="checkbox" id="hib-day-5" value="5" onchange="onHibernationFormChange()">
+                                                <label for="hib-day-5" title="Friday">F</label>
+                                            </div>
+                                            <div class="day-checkbox">
+                                                <input type="checkbox" id="hib-day-6" value="6" onchange="onHibernationFormChange()">
+                                                <label for="hib-day-6" title="Saturday">S</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Idle rule -->
+                                <div id="hib-idle-fields">
+                                    <div class="form-group">
+                                        <label for="hib-idle-minutes">Idle Timeout (minutes)</label>
+                                        <input type="number" id="hib-idle-minutes" min="5" max="1440" value="60" oninput="onHibernationFormChange()">
+                                        <p class="hib-field-hint">Hibernate after this many minutes with no visitor activity (5 to 1440).</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Safety conditions -->
+                            <div class="server-mode-control" id="hib-conditions-card">
+                                <h4>Safety Conditions</h4>
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="hib-skip-active" checked onchange="onHibernationFormChange()">
+                                        <span>Never hibernate while a visitor is using the kiosk</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hib-warning-minutes">Warning Before Hibernating (minutes)</label>
+                                    <input type="number" id="hib-warning-minutes" min="0" max="30" value="5" oninput="onHibernationFormChange()">
+                                    <p class="hib-field-hint">Admins are warned this long beforehand. Use 0 for no warning.</p>
+                                </div>
+                            </div>
+
+                            <!-- Dry run / enforce -->
+                            <div class="server-mode-control" id="hib-enforcement-card">
+                                <h4>Enforcement</h4>
+                                <div class="form-group">
+                                    <label for="hib-enforcement">Mode</label>
+                                    <select id="hib-enforcement" onchange="onHibernationFormChange()">
+                                        <option value="dry_run">Dry Run (only log what would happen)</option>
+                                        <option value="enforce">Enforce (really hibernate the machine)</option>
+                                    </select>
+                                </div>
+                                <p class="hib-enforce-warning" id="hib-enforce-warning" style="display: none;">
+                                    ⚠️ Enforce mode will hibernate the kiosk machine. Test in Dry Run first.
+                                </p>
+                            </div>
+
+                            <!-- Plain-English summary, filled in by JS -->
+                            <div class="hib-summary" id="hib-summary">Loading policy...</div>
+
+                            <div class="hib-actions">
+                                <button type="button" class="btn-secondary" onclick="loadHibernationPolicy()">Reset</button>
+                                <button type="submit" class="btn-primary" id="hib-save-btn">Save Policy</button>
+                            </div>
+                            <p class="mode-hint" id="hib-last-updated"></p>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Schedule modal (DONE BY BERNISSA) -->
