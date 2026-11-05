@@ -418,7 +418,7 @@ router.get('/questions', (req, res) => {
                 });
             }
             
-            // Add option if it exists (for choice questions)
+            
             if (row.option_id && row.option_label) {
                 const question = questionsMap.get(row.id);
                 question.options.push({
