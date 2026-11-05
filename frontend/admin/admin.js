@@ -9080,6 +9080,7 @@ function showPage(pageName) {
     } else if (pageName === 'server-schedule') {
         loadSchedules();
         checkServerStatus();
+        loadHibernationPolicy();
     } else if (pageName === 'form-management') {
     loadFormUISettings();
     } else if (pageName === 'Land-page-QR') {
@@ -16288,5 +16289,237 @@ function stopSystemStatusAutoRefresh() {
     if (systemStatusTimer) {
         clearInterval(systemStatusTimer);
         systemStatusTimer = null;
+    }
+}
+
+// ==================== HIBERNATION POLICY (BY ZHI RUO) ====================
+// Settings UI on the Server Schedule page.
+// Talks to: GET / PUT /api/admin/hibernation/policy
+
+const HIB_DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+let hibernationSavedPolicy = null;   // last policy that was loaded from / saved to the server
+
+function hibEl(id) {
+    return document.getElementById(id);
+}
+
+// ---------- Form <-> policy ----------
+function readHibernationForm() {
+    const days = [];
+    for (let d = 0; d < 7; d++) {
+        const cb = hibEl('hib-day-' + d);
+        if (cb && cb.checked) days.push(d);
+    }
+    return {
+        enabled: hibEl('hib-enabled').checked,
+        policyType: hibEl('hib-policy-type').value,
+        scheduled: {
+            hibernateTime: hibEl('hib-time').value,
+            days
+        },
+        idle: {
+            timeoutMinutes: parseInt(hibEl('hib-idle-minutes').value, 10)
+        },
+        conditions: {
+            skipWhenVisitorActive: hibEl('hib-skip-active').checked,
+            warningMinutes: parseInt(hibEl('hib-warning-minutes').value, 10)
+        },
+        enforcement: hibEl('hib-enforcement').value
+    };
+}
+
+function fillHibernationForm(policy) {
+    hibEl('hib-enabled').checked = !!policy.enabled;
+    hibEl('hib-policy-type').value = policy.policyType;
+    hibEl('hib-time').value = policy.scheduled.hibernateTime;
+    for (let d = 0; d < 7; d++) {
+        const cb = hibEl('hib-day-' + d);
+        if (cb) cb.checked = policy.scheduled.days.includes(d);
+    }
+    hibEl('hib-idle-minutes').value = policy.idle.timeoutMinutes;
+    hibEl('hib-skip-active').checked = !!policy.conditions.skipWhenVisitorActive;
+    hibEl('hib-warning-minutes').value = policy.conditions.warningMinutes;
+    hibEl('hib-enforcement').value = policy.enforcement;
+    onHibernationFormChange();
+}
+
+// ---------- Plain-English summary ----------
+function formatHibernationDays(days) {
+    if (!days || days.length === 0) return 'no days selected';
+    const key = days.slice().sort((a, b) => a - b).join(',');
+    if (key === '0,1,2,3,4,5,6') return 'every day';
+    if (key === '1,2,3,4,5') return 'weekdays (Mon to Fri)';
+    if (key === '0,6') return 'weekends (Sat and Sun)';
+    return days.slice().sort((a, b) => a - b).map(d => HIB_DAY_NAMES[d]).join(', ');
+}
+
+function describeHibernationPolicy(p) {
+    if (!p.enabled) {
+        return 'The hibernation policy is OFF. This policy will not hibernate the machine.';
+    }
+
+    const parts = [];
+    if (p.policyType !== 'idle') {
+        parts.push(`at ${p.scheduled.hibernateTime || '--:--'} on ${formatHibernationDays(p.scheduled.days)}`);
+    }
+    if (p.policyType !== 'scheduled') {
+        parts.push(`after ${p.idle.timeoutMinutes || '--'} minutes with no visitor activity`);
+    }
+
+    let text = 'The machine will hibernate ' + parts.join(' or ');
+    if (parts.length > 1) text += ' (whichever comes first)';
+    text += '. ';
+
+    text += p.conditions.skipWhenVisitorActive
+        ? 'It will wait if a visitor is using the kiosk. '
+        : 'It will hibernate even if a visitor is using the kiosk. ';
+
+    text += p.conditions.warningMinutes > 0
+        ? `Admins get a warning ${p.conditions.warningMinutes} minutes before. `
+        : 'No warning is given. ';
+
+    text += p.enforcement === 'enforce'
+        ? 'ENFORCING: the machine will really hibernate.'
+        : 'DRY RUN: nothing will actually hibernate, it is only logged.';
+    return text;
+}
+
+// ---------- Live updates while the admin edits the form ----------
+function onHibernationFormChange() {
+    const p = readHibernationForm();
+
+    hibEl('hib-enabled-label').textContent =
+        p.enabled ? 'Hibernation policy is ON' : 'Hibernation policy is OFF';
+
+    // Grey out the rule cards while the master switch is OFF
+    ['hib-rules-card', 'hib-conditions-card', 'hib-enforcement-card'].forEach(id => {
+        hibEl(id).classList.toggle('hib-disabled', !p.enabled);
+    });
+
+    // Only show the fields that the chosen policy type uses
+    hibEl('hib-scheduled-fields').classList.toggle('hib-hidden', p.policyType === 'idle');
+    hibEl('hib-idle-fields').classList.toggle('hib-hidden', p.policyType === 'scheduled');
+
+    hibEl('hib-enforce-warning').style.display = p.enforcement === 'enforce' ? 'block' : 'none';
+    hibEl('hib-summary').textContent = describeHibernationPolicy(p);
+}
+
+function updateHibernationBadge(policy) {
+    const badge = hibEl('hib-status-badge');
+    if (!badge) return;
+    if (!policy.enabled) {
+        badge.className = 'status-badge inactive';
+        badge.textContent = 'OFF';
+    } else {
+        badge.className = 'status-badge active';
+        badge.textContent = policy.enforcement === 'enforce' ? 'ENFORCING' : 'DRY RUN';
+    }
+}
+
+function updateHibernationLastUpdated(policy) {
+    const el = hibEl('hib-last-updated');
+    if (!el) return;
+    if (policy.last_updated) {
+        el.textContent = `Last saved by ${policy.updated_by} on ${new Date(policy.last_updated).toLocaleString()}`;
+    } else {
+        el.textContent = 'Not saved yet. These are the default settings.';
+    }
+}
+
+// ---------- Checks before saving (the server checks again) ----------
+function validateHibernationPolicy(p) {
+    const errors = [];
+
+    if (p.policyType !== 'idle') {
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(p.scheduled.hibernateTime || '')) {
+            errors.push('Choose a hibernate time');
+        }
+        if (p.scheduled.days.length === 0) {
+            errors.push('Select at least one day');
+        }
+    }
+    if (p.policyType !== 'scheduled') {
+        const m = p.idle.timeoutMinutes;
+        if (!Number.isInteger(m) || m < 5 || m > 1440) {
+            errors.push('Idle timeout must be 5 to 1440 minutes');
+        }
+    }
+    const w = p.conditions.warningMinutes;
+    if (!Number.isInteger(w) || w < 0 || w > 30) {
+        errors.push('Warning must be 0 to 30 minutes');
+    }
+    return errors;
+}
+
+// The server needs every field filled in. If the admin left an UNUSED rule
+// blank (e.g. no days ticked while using "idle"), keep the saved values for it.
+function buildHibernationPayload(p) {
+    const fallback = hibernationSavedPolicy;
+    if (p.policyType === 'idle' && fallback) {
+        const timeOk = /^([01]\d|2[0-3]):[0-5]\d$/.test(p.scheduled.hibernateTime || '');
+        if (!timeOk || p.scheduled.days.length === 0) p.scheduled = fallback.scheduled;
+    }
+    if (p.policyType === 'scheduled' && fallback) {
+        const m = p.idle.timeoutMinutes;
+        if (!Number.isInteger(m) || m < 5 || m > 1440) p.idle = fallback.idle;
+    }
+    return p;
+}
+
+// ---------- Load / save ----------
+async function loadHibernationPolicy() {
+    if (!hibEl('hibernation-form')) return;
+
+    try {
+        const response = await fetch('/api/admin/hibernation/policy');
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'HTTP ' + response.status);
+
+        hibernationSavedPolicy = data.policy;
+        fillHibernationForm(data.policy);
+        updateHibernationBadge(data.policy);
+        updateHibernationLastUpdated(data.policy);
+    } catch (error) {
+        console.error('❌ Error loading hibernation policy:', error);
+        hibEl('hib-summary').textContent = 'Could not load the hibernation policy.';
+        showNotification('Failed to load hibernation policy', 'error');
+    }
+}
+
+async function saveHibernationPolicy() {
+    const form = readHibernationForm();
+    const errors = validateHibernationPolicy(form);
+    if (errors.length > 0) {
+        showNotification(errors.join('. '), 'error');
+        return;
+    }
+
+    if (form.enabled && form.enforcement === 'enforce') {
+        const ok = confirm('Enforce mode will really hibernate the kiosk machine. Save this policy?');
+        if (!ok) return;
+    }
+
+    const saveBtn = hibEl('hib-save-btn');
+    if (saveBtn) saveBtn.disabled = true;
+
+    try {
+        const response = await fetch('/api/admin/hibernation/policy', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(buildHibernationPayload(form))
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'HTTP ' + response.status);
+
+        hibernationSavedPolicy = data.policy;
+        fillHibernationForm(data.policy);
+        updateHibernationBadge(data.policy);
+        updateHibernationLastUpdated(data.policy);
+        showNotification('Hibernation policy saved', 'success');
+    } catch (error) {
+        console.error('❌ Error saving hibernation policy:', error);
+        showNotification(error.message || 'Failed to save hibernation policy', 'error');
+    } finally {
+        if (saveBtn) saveBtn.disabled = false;
     }
 }
