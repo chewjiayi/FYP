@@ -10519,7 +10519,7 @@ function resetInactivityTimer() {
         return cache;
     }
 
-    // ---------------- hooks (chained on top of the existing strip frames) ----------------
+    
     const updatePreviewBeforePicker = updatePreviewWithCutout;
     updatePreviewWithCutout = function () {
         const previewPhoto = document.getElementById('preview-photo');
