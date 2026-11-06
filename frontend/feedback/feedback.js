@@ -2619,6 +2619,19 @@ function applyPledgeCoachSuggestion() {
 
 // ==================== 5. FORM SUBMISSION FUNCTIONS ====================
 
+// Allow visitors to skip feedback but require a pledge
+function skipFeedback() {
+    clearValidationMessages();
+
+    userData.feedbackSkipped = true;
+
+    cheerRpBear('No worries! You can skip feedback. Let us make a sustainability pledge.');
+
+    showFlowPage('pledge-page');
+
+    resetInactivityTimer();
+}
+
 // Submit feedback form with dynamic questions
 function submitFeedback(event) {
     event.preventDefault();
@@ -2667,11 +2680,7 @@ function submitFeedback(event) {
         return;
     }
 
-    if (getFeatureFlags().pledgeEnabled === false) {
-        cheerRpBear('Feedback captured. Pledge is skipped by settings, so we can move ahead.');
-        skipPledge();
-        return;
-    }
+   
 
     cheerRpBear('Feedback done. Let us turn that into a small action.');
     showFlowPage('pledge-page');
@@ -2815,9 +2824,10 @@ function submitPledge(event) {
     userData.pledgeTopic = userData.pledgeTopics[0] || '';
     userData.pledgeSkipped = false;
 
-    if (rules.pledgeRequired !== false && !userData.pledge) {
-        showFieldError('pledge-text', 'Write one short action you will try. You can also skip the pledge below.');
-        nudgeRpBear('Write one short action, or use Skip Pledge if you prefer.');
+    // Pledge is mandatory and cannot be skipped
+    if (!userData.pledge) {
+        showFieldError('pledge-text', 'Please write a sustainability pledge before continuing.');
+        nudgeRpBear('Your sustainability pledge is required before you can continue.');
         return;
     }
 
@@ -10864,7 +10874,7 @@ function resetInactivityTimer() {
         anchorX: 0.5,     // keep centred
         anchorY: 0.50,    // maintain head alignment
         lift: 0.20
-            
+
     };
     const prop = IMAGE_PROPS[ID];
     prop.image = new Image();
