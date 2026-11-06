@@ -7832,8 +7832,14 @@ const HAND_PROP = {
 const PARADE_PROP = {
     enabled: true,
     src: '/assets/propsforphototaking/rp-parade.png',
-    widthHands: 0.5, maxWidth: 0.95, minWidth: 0.35, bearsAt: 0.80, minHandGap: 0.2,
-    holdMs: 300, graceMs: 400, followMs: 90
+    widthHands: 0.3,
+    maxWidth: 0.65,
+    minWidth: 0.25,
+    bearsAt: 0.80,
+    minHandGap: 0.2,
+    holdMs: 300,
+    graceMs: 400,
+    followMs: 90
 };
 const POINT = {
     enabled: true,
@@ -10587,73 +10593,135 @@ function resetInactivityTimer() {
 // - Works whether the frame PNG's middle is transparent OR solid white
 //   (if solid white, the white cutout is removed automatically)
 // ============================================================================
-(function esgCentreFrame() {
-    const THEME_ID = 'esg-centre';
-    const THEME_NAME = 'ESG Centre';
-    const FRAME_SRC = '/assets/overlays/rp-esg-centre-frame.png';   
-    const MAKE_DEFAULT = true;                                      // select it automatically on the style page
+// ============================================================================
+// ESG CENTRE PHOTO FRAMES  (ordinary photos only - NOT strips, NOT boomerang)
+// - Adds 5 frames to the style page theme list
+// - The photo window of each frame is detected automatically
+//   (works for transparent windows AND solid white windows)
+// - Falls back to the normal overlay if a frame image fails to load
+// ============================================================================
+(function esgCentreFrames() {
+    const FRAME_DIR = '/assets/overlays/';   // must match the folder where you put the PNGs
+    const FRAMES = [
+        { id: 'esg-centre',   name: 'ESG Centre 1', file: 'rp-esg-centre-frame.png' },
+        { id: 'esg-centre-2', name: 'ESG Centre 2', file: 'rp-esg-centre-frame2.png' },
+        { id: 'esg-centre-3', name: 'ESG Centre 3', file: 'rp-esg-centre-frame3.png' },
+        { id: 'esg-centre-4', name: 'ESG Centre 4', file: 'rp-esg-centre-frame4.png' },
+        { id: 'esg-centre-5', name: 'ESG Centre 5', file: 'rp-esg-centre-frame5.png' }
+        // If a frame's window is detected wrongly, add a manual override, e.g.
+        // { id: 'esg-centre-3', name: 'ESG Centre 3', file: '...', cut: { x: 0.07, y: 0.16, w: 0.85, h: 0.72, radius: 0.02 } }
+    ];
+    const FALLBACK_CUT = { x: 0.0746, y: 0.1656, w: 0.8530, h: 0.7195, radius: 0.022 };
+    const BLEED = 0.004;          // photo tucks slightly under the frame border
+    const MAKE_DEFAULT = true;    // select the first frame automatically
 
-    // Cutout position as a fraction of the frame image (measured from your 1447 x 1087 frame).
-    // If the photo overlaps the green border or leaves a gap, nudge these numbers slightly.
-    const CUT = { x: 0.0746, y: 0.1656, w: 0.8530, h: 0.7195, radius: 0.022 };
-    const BLEED = 0.004;   // photo tucks slightly under the green border
-
-    let framePromise = null;
+    FRAMES.forEach((f) => { f.src = FRAME_DIR + f.file; });
+    const frameById = (id) => FRAMES.find((f) => f.id === id);
+    const framePromises = {};
     const cache = { key: '', url: '', w: 0, h: 0 };
 
     function isStrip() { return Boolean(photoData) && shouldContainPhoto(photoData); }
     function isEsgStill() {
-        return selectedTheme === THEME_ID && !isStrip() && Boolean(photoData) &&
+        return Boolean(frameById(selectedTheme)) && !isStrip() && Boolean(photoData) &&
             userData.captureMode !== 'boomerang' && boomerangFrames.length === 0;
     }
 
-    // ---------- load frame, and remove the white cutout if it is solid ----------
-    function punchOutCutout(g, w, h) {
-        const cx = Math.round((CUT.x + CUT.w / 2) * w);
-        const cy = Math.round((CUT.y + CUT.h / 2) * h);
-        const img = g.getImageData(0, 0, w, h);
-        const px = img.data;
-        if (px[(cy * w + cx) * 4 + 3] < 200) return;   // already transparent, nothing to do
-
-        const inset = 0.004;
-        const x0 = Math.round((CUT.x + inset) * w), x1 = Math.round((CUT.x + CUT.w - inset) * w);
-        const y0 = Math.round((CUT.y + inset) * h), y1 = Math.round((CUT.y + CUT.h - inset) * h);
-        const isWhite = (i) => px[i + 3] > 0 && px[i] >= 236 && px[i + 1] >= 236 && px[i + 2] >= 236;
-
-        const stack = [cx, cy];
-        while (stack.length) {
-            const y = stack.pop(), x = stack.pop();
-            if (x < x0 || x > x1 || y < y0 || y > y1) continue;
-            const i = (y * w + x) * 4;
-            if (!isWhite(i)) continue;
-            px[i + 3] = 0;   // make transparent (also marks as visited)
-            stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+    function hashString(s) {   // fingerprint of the whole image, not just its last characters
+        let h = 2166136261;
+        for (let i = 0; i < s.length; i += 7) {
+            h ^= s.charCodeAt(i);
+            h = Math.imul(h, 16777619);
         }
-        g.putImageData(img, 0, 0);
+        return s.length + ':' + (h >>> 0);
     }
 
-    function loadFrame() {
-        if (!framePromise) {
-            framePromise = loadImageElement(FRAME_SRC).then((img) => {
+    // ---------- find the photo window, and make it transparent if it is solid white ----------
+    function detectWindow(g, w, h) {
+        const img = g.getImageData(0, 0, w, h);
+        const px = img.data;
+        const isEmpty = (i) => px[i + 3] < 40 || (px[i] >= 225 && px[i + 1] >= 225 && px[i + 2] >= 225);
+
+        const seeds = [[0.5, 0.5], [0.5, 0.45], [0.5, 0.55], [0.4, 0.5], [0.6, 0.5], [0.45, 0.4], [0.55, 0.6]];
+        for (const [sx, sy] of seeds) {
+            const start = Math.round(sy * h) * w + Math.round(sx * w);
+            if (!isEmpty(start * 4)) continue;
+
+            const visited = new Uint8Array(w * h);
+            const stack = new Int32Array(w * h);
+            let top = 0, count = 0, minX = w, maxX = 0, minY = h, maxY = 0;
+            stack[top++] = start;
+            visited[start] = 1;
+
+            while (top > 0) {
+                const idx = stack[--top];
+                const x = idx % w, y = (idx - x) / w;
+                count++;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+                if (x > 0 && !visited[idx - 1] && isEmpty((idx - 1) * 4)) { visited[idx - 1] = 1; stack[top++] = idx - 1; }
+                if (x < w - 1 && !visited[idx + 1] && isEmpty((idx + 1) * 4)) { visited[idx + 1] = 1; stack[top++] = idx + 1; }
+                if (y > 0 && !visited[idx - w] && isEmpty((idx - w) * 4)) { visited[idx - w] = 1; stack[top++] = idx - w; }
+                if (y < h - 1 && !visited[idx + w] && isEmpty((idx + w) * 4)) { visited[idx + w] = 1; stack[top++] = idx + w; }
+            }
+
+            const bw = maxX - minX + 1, bh = maxY - minY + 1;
+            const areaFraction = (bw * bh) / (w * h);
+            if (areaFraction < 0.2 || areaFraction > 0.92) continue;   // not a believable window, try next seed
+
+            // make the window transparent (plus a 1px fringe of near-white edge pixels)
+            for (let i = 0; i < w * h; i++) {
+                if (visited[i]) px[i * 4 + 3] = 0;
+            }
+            const fringe = [];
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    const i = y * w + x;
+                    if (visited[i]) continue;
+                    const near = visited[i - 1] || visited[i + 1] || visited[i - w] || visited[i + w];
+                    if (near && px[i * 4] >= 200 && px[i * 4 + 1] >= 200 && px[i * 4 + 2] >= 200) fringe.push(i);
+                }
+            }
+            fringe.forEach((i) => { px[i * 4 + 3] = 0; });
+            g.putImageData(img, 0, 0);
+
+            // corner radius from how much of the box the window fills
+            const fill = count / (bw * bh);
+            let radiusPx = Math.sqrt(Math.max(0, (1 - fill)) * bw * bh / (4 - Math.PI));
+            radiusPx = Math.min(radiusPx, Math.min(bw, bh) * 0.12);
+
+            return { x: minX / w, y: minY / h, w: bw / w, h: bh / h, radius: radiusPx / w };
+        }
+        return null;
+    }
+
+    function loadFrame(frame) {
+        if (!framePromises[frame.id]) {
+            framePromises[frame.id] = loadImageElement(frame.src).then((img) => {
                 const c = document.createElement('canvas');
                 c.width = img.naturalWidth;
                 c.height = img.naturalHeight;
                 const g = c.getContext('2d', { willReadFrequently: true });
                 g.drawImage(img, 0, 0);
-                punchOutCutout(g, c.width, c.height);
-                return c;
-            }).catch((error) => { framePromise = null; throw error; });
+                const detected = frame.cut ? null : detectWindow(g, c.width, c.height);
+                if (frame.cut) detectWindow(g, c.width, c.height);   // still clears a solid white window
+                return { canvas: c, cut: frame.cut || detected || FALLBACK_CUT };
+            }).catch((error) => { delete framePromises[frame.id]; throw error; });
         }
-        return framePromise;
+        return framePromises[frame.id];
     }
 
     // ---------- compose photo + frame ----------
     async function compose(outW) {
-        const [frame, img] = await Promise.all([loadFrame(), loadImageElement(photoData)]);
-        const key = [photoData.length, photoData.slice(-40), outW].join('|');
+        const frame = frameById(selectedTheme);
+        const snapshot = photoData;
+        const [loaded, img] = await Promise.all([loadFrame(frame), loadImageElement(snapshot)]);
+        const key = frame.id + '|' + hashString(snapshot) + '|' + outW;
         if (cache.key === key) return cache;
 
-        const W = outW, H = Math.round(outW * frame.height / frame.width);
+        const { canvas: frameCanvas, cut } = loaded;
+        const W = outW, H = Math.round(outW * frameCanvas.height / frameCanvas.width);
         const canvas = document.createElement('canvas');
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
@@ -10661,19 +10729,19 @@ function resetInactivityTimer() {
         ctx.fillRect(0, 0, W, H);
 
         const bleed = BLEED * W;
-        const cx = CUT.x * W - bleed, cy = CUT.y * H - bleed;
-        const cw = CUT.w * W + bleed * 2, ch = CUT.h * H + bleed * 2;
+        const cx = cut.x * W - bleed, cy = cut.y * H - bleed;
+        const cw = cut.w * W + bleed * 2, ch = cut.h * H + bleed * 2;
 
         ctx.save();
         ctx.beginPath();
-        ctx.roundRect(cx, cy, cw, ch, CUT.radius * W);
+        ctx.roundRect(cx, cy, cw, ch, cut.radius * W);
         ctx.clip();
         const scale = Math.max(cw / img.width, ch / img.height);   // cover fit
         const dw = img.width * scale, dh = img.height * scale;
         ctx.drawImage(img, cx + (cw - dw) / 2, cy + (ch - dh) / 2, dw, dh);
         ctx.restore();
 
-        ctx.drawImage(frame, 0, 0, W, H);   // frame on top
+        ctx.drawImage(frameCanvas, 0, 0, W, H);   // frame on top
 
         cache.key = key;
         cache.url = canvas.toDataURL('image/png');
@@ -10681,32 +10749,34 @@ function resetInactivityTimer() {
         return cache;
     }
 
-    // ---------- add the "ESG Centre" option to the theme list ----------
-    function injectThemeOption() {
+    // ---------- add the frames to the theme list ----------
+    function injectThemeOptions() {
         const list = document.getElementById('overlay-options');
         if (!list) return;
 
-        overlayData[THEME_ID] = {
-            desktop_filename: FRAME_SRC,
-            mobile_filename: FRAME_SRC,
-            display_name: THEME_NAME
-        };
+        // insert in reverse so frame 1 ends up first
+        [...FRAMES].reverse().forEach((frame) => {
+            overlayData[frame.id] = {
+                desktop_filename: frame.src,
+                mobile_filename: frame.src,
+                display_name: frame.name
+            };
+            if (list.querySelector('[data-esg-frame="' + frame.id + '"]')) return;
 
-        if (!list.querySelector('[data-esg-centre]')) {
             const option = document.createElement('div');
             option.className = 'theme-option';
-            option.dataset.esgCentre = '1';
-            option.onclick = () => selectTheme(THEME_ID, option);
+            option.dataset.esgFrame = frame.id;
+            option.onclick = () => selectTheme(frame.id, option);
             option.innerHTML =
-                '<div class="theme-swatch" style="background:#4a9d3f url(\'' + FRAME_SRC + '\') center/cover no-repeat;"></div>' +
-                '<div class="theme-name">' + THEME_NAME + '</div>';
+                '<div class="theme-swatch" style="background:#4a9d3f url(\'' + frame.src + '\') center/cover no-repeat;"></div>' +
+                '<div class="theme-name">' + frame.name + '</div>';
             list.insertBefore(option, list.firstChild);
-        }
+        });
 
         if (MAKE_DEFAULT) {
             setTimeout(() => {
-                const el = list.querySelector('[data-esg-centre]');
-                if (el) selectTheme(THEME_ID, el);
+                const el = list.querySelector('[data-esg-frame="' + FRAMES[0].id + '"]');
+                if (el) selectTheme(FRAMES[0].id, el);
             }, 250);   // after feedback.js picks its own default (100ms)
         }
     }
@@ -10714,7 +10784,7 @@ function resetInactivityTimer() {
     const loadOverlayOptionsBase = loadOverlayOptions;
     loadOverlayOptions = async function () {
         await loadOverlayOptionsBase.apply(this, arguments);
-        injectThemeOption();
+        injectThemeOptions();
     };
 
     // ---------- style page preview ----------
@@ -10744,9 +10814,11 @@ function resetInactivityTimer() {
         if (overlay) overlay.style.setProperty('display', 'none', 'important');
         previewPhoto.style.setProperty('object-fit', 'contain', 'important');
 
+        const shownPhoto = photoData;
+        const shownTheme = selectedTheme;
         compose(1000)
             .then((r) => {
-                if (!isEsgStill()) return;   // user switched theme while loading
+                if (!isEsgStill() || photoData !== shownPhoto || selectedTheme !== shownTheme) return;   // stale result
                 const frame = previewPhoto.closest('.preview-frame');
                 if (frame) {
                     const w = currentDevice === 'mobile' ? 324 : 560;
@@ -10756,7 +10828,12 @@ function resetInactivityTimer() {
                 }
                 previewPhoto.src = r.url;
             })
-            .catch((error) => console.error('ESG Centre frame preview failed:', error));
+            .catch((error) => {
+                console.error('ESG frame preview failed, using standard frame:', error);
+                if (photoData !== shownPhoto) return;
+                resetPreviewLook(previewPhoto, overlay);
+                updatePreviewBeforeEsg();
+            });
     };
 
     // ---------- final saved / emailed image ----------
@@ -10767,60 +10844,8 @@ function resetInactivityTimer() {
         return compose(1600)
             .then((r) => { userData.processedPhoto = r.url; })
             .catch((error) => {
-                console.error('ESG Centre frame failed, using standard frame:', error);
+                console.error('ESG frame failed, using standard frame:', error);
                 return processStillBeforeEsg.apply(this, arguments);
             });
     };
-})();
-
-// ============================================================================
-// MIRROR VIEW BY DEFAULT (button still toggles)
-// - Every new visitor starts in mirror (selfie) view
-// - The Mirror View / Normal View button is always visible and works
-// - The saved photo, boomerang and props follow whatever the preview shows
-// ============================================================================
-(function mirrorByDefault() {
-    const DEFAULT_MIRRORED = true;   // set false to go back to normal view by default
-
-    function syncMirrorUi() {
-        const video = document.getElementById('video');
-        const mirrorBtn = document.getElementById('mirror-btn');
-        if (video) {
-            video.classList.remove('mirror');                 // CSS uses data-flip instead
-            video.dataset.flip = isMirrored ? '1' : '0';
-        }
-        if (mirrorBtn) {
-            mirrorBtn.hidden = false;
-            mirrorBtn.style.removeProperty('display');
-            mirrorBtn.textContent = isMirrored ? 'Normal View' : 'Mirror View';
-            mirrorBtn.setAttribute('aria-pressed', String(isMirrored));
-        }
-    }
-
-    function applyDefault() {
-        isMirrored = DEFAULT_MIRRORED;
-        syncMirrorUi();
-    }
-
-    // now, and again after the earlier "non-mirrored" blocks run on DOMContentLoaded
-    applyDefault();
-    document.addEventListener('DOMContentLoaded', applyDefault);
-
-    // keep the button label and flip in step every time the camera starts (e.g. Retake)
-    const initializeCameraBeforeMirror = initializeCamera;
-    initializeCamera = async function () {
-        await initializeCameraBeforeMirror.apply(this, arguments);
-        syncMirrorUi();
-    };
-
-    // every new visitor starts mirrored again
-    ['returnToLandingPage', 'submitAnother', 'goHomeFromFeedbackForm'].forEach((name) => {
-        const original = window[name];
-        if (typeof original !== 'function') return;
-        window[name] = function () {
-            const result = original.apply(this, arguments);
-            applyDefault();
-            return result;
-        };
-    });
 })();
