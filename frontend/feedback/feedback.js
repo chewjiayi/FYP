@@ -10772,3 +10772,55 @@ function resetInactivityTimer() {
             });
     };
 })();
+
+// ============================================================================
+// MIRROR VIEW BY DEFAULT (button still toggles)
+// - Every new visitor starts in mirror (selfie) view
+// - The Mirror View / Normal View button is always visible and works
+// - The saved photo, boomerang and props follow whatever the preview shows
+// ============================================================================
+(function mirrorByDefault() {
+    const DEFAULT_MIRRORED = true;   // set false to go back to normal view by default
+
+    function syncMirrorUi() {
+        const video = document.getElementById('video');
+        const mirrorBtn = document.getElementById('mirror-btn');
+        if (video) {
+            video.classList.remove('mirror');                 // CSS uses data-flip instead
+            video.dataset.flip = isMirrored ? '1' : '0';
+        }
+        if (mirrorBtn) {
+            mirrorBtn.hidden = false;
+            mirrorBtn.style.removeProperty('display');
+            mirrorBtn.textContent = isMirrored ? 'Normal View' : 'Mirror View';
+            mirrorBtn.setAttribute('aria-pressed', String(isMirrored));
+        }
+    }
+
+    function applyDefault() {
+        isMirrored = DEFAULT_MIRRORED;
+        syncMirrorUi();
+    }
+
+    // now, and again after the earlier "non-mirrored" blocks run on DOMContentLoaded
+    applyDefault();
+    document.addEventListener('DOMContentLoaded', applyDefault);
+
+    // keep the button label and flip in step every time the camera starts (e.g. Retake)
+    const initializeCameraBeforeMirror = initializeCamera;
+    initializeCamera = async function () {
+        await initializeCameraBeforeMirror.apply(this, arguments);
+        syncMirrorUi();
+    };
+
+    // every new visitor starts mirrored again
+    ['returnToLandingPage', 'submitAnother', 'goHomeFromFeedbackForm'].forEach((name) => {
+        const original = window[name];
+        if (typeof original !== 'function') return;
+        window[name] = function () {
+            const result = original.apply(this, arguments);
+            applyDefault();
+            return result;
+        };
+    });
+})();
