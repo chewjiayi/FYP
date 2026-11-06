@@ -7014,7 +7014,7 @@ const IMAGE_PROPS = {
     },
     'rp-mouse-ears': {
         src: '/assets/propsforphototaking/rp-mouse-ears.png',   // must match the real file name exactly (case-sensitive)
-        widthEyes: 2.3, anchorX: 0.5, anchorY: 0.45, lift: 0.15
+        widthEyes: 2.0, anchorX: 0.5, anchorY: 0.45, lift: 0.15
     }
 };
 Object.entries(IMAGE_PROPS).forEach(([id, prop]) => {
@@ -10523,7 +10523,7 @@ function resetInactivityTimer() {
         return cache;
     }
 
-    
+
     const updatePreviewBeforePicker = updatePreviewWithCutout;
     updatePreviewWithCutout = function () {
         const previewPhoto = document.getElementById('preview-photo');
@@ -10603,11 +10603,11 @@ function resetInactivityTimer() {
 (function esgCentreFrames() {
     const FRAME_DIR = '/assets/overlays/';   // must match the folder where you put the PNGs
     const FRAMES = [
-        { id: 'esg-centre',   name: 'ESG Centre 1', file: 'rp-esg-centre-frame.png' },
+        { id: 'esg-centre', name: 'ESG Centre 1', file: 'rp-esg-centre-frame.png' },
         { id: 'esg-centre-2', name: 'ESG Centre 2', file: 'rp-esg-centre-frame2.png' },
         { id: 'esg-centre-3', name: 'ESG Centre 3', file: 'rp-esg-centre-frame3.png' },
         { id: 'esg-centre-4', name: 'ESG Centre 4', file: 'rp-esg-centre-frame4.png' },
-        
+
         // If a frame's window is detected wrongly, add a manual override, e.g.
         // { id: 'esg-centre-3', name: 'ESG Centre 3', file: '...', cut: { x: 0.07, y: 0.16, w: 0.85, h: 0.72, radius: 0.02 } }
     ];
@@ -10848,4 +10848,69 @@ function resetInactivityTimer() {
                 return processStillBeforeEsg.apply(this, arguments);
             });
     };
+})();
+
+// ============================================================================
+// "I ♥ ESG" HEADBAND PROP  (worn prop, follows head, hidden behind hands)
+// Image: /assets/propsforphototaking/esg-headband.png
+// ============================================================================
+(function esgHeadbandProp() {
+    const ID = 'esg-headband';
+
+    // ---- tuning knobs (adjust these if it sits too high/low/wide) ----
+    IMAGE_PROPS[ID] = {
+        src: '/assets/propsforphototaking/esg-headband.png',
+        widthEyes: 1.75,   // significantly smaller
+        anchorX: 0.5,     // keep centred
+        anchorY: 0.50,    // maintain head alignment
+        lift: 0.20
+            
+    };
+    const prop = IMAGE_PROPS[ID];
+    prop.image = new Image();
+    prop.image.onerror = () => console.error('[' + ID + '] image not found: ' + prop.src);
+    prop.image.src = prop.src;
+
+    // register in the filter list + let hands hide it like the crown/ears
+    if (!FACE_ACCESSORY_IDS.includes(ID)) {
+        FACE_ACCESSORY_OPTIONS.push({ id: ID, label: 'I \u2665 ESG Headband' });
+        FACE_ACCESSORY_IDS.push(ID);
+    }
+    if (!WORN_PROPS.includes(ID)) WORN_PROPS.push(ID);
+
+    // draw it (live preview AND saved photo / boomerang / strip frames)
+    const drawOneFaceAccessoryBase = drawOneFaceAccessory;
+    drawOneFaceAccessory = function (ctx, geometry, width, height, time, primary) {
+        if (selectedFaceAccessory === ID) {
+            withOcclusion(ctx, width, height, (c) => drawWornImageProp(c, geometry, IMAGE_PROPS[ID]));
+            return;
+        }
+        return drawOneFaceAccessoryBase.apply(this, arguments);
+    };
+
+    // thumbnail style + make sure the card isn't hidden by the "keep only requested filters" rule
+    const style = document.createElement('style');
+    style.id = 'esg-headband-style';
+    style.textContent =
+        'html body .face-filter-card.face-filter-card.face-filter-card[data-accessory="' + ID + '"]{display:grid !important}' +
+        '.face-filter-preview.esg-headband::before{content:"";width:46px;height:40px;' +
+        'background:url("' + prop.src + '") center / contain no-repeat;animation:filterFloat 1.6s ease-in-out infinite}';
+    document.head.appendChild(style);
+
+    // add the card to the swipe tray
+    function injectCard() {
+        const selector = document.getElementById('face-filter-selector');
+        if (!selector || selector.querySelector('[data-accessory="' + ID + '"]')) return;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'face-filter-card';
+        card.dataset.accessory = ID;
+        card.setAttribute('role', 'option');
+        card.setAttribute('aria-selected', 'false');
+        card.innerHTML = '<span class="face-filter-preview esg-headband"></span><span>I \u2665 ESG</span>';
+        card.addEventListener('click', () => selectFaceAccessory(ID));
+        selector.appendChild(card);
+        updateFaceAccessoryButtons();
+    }
+    arOnReady(injectCard);
 })();

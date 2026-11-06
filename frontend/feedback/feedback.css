@@ -5728,6 +5728,14 @@ body {
     background: url('propsforphototaking/RPGoGreenGoRP!.png') center / contain no-repeat;
     animation: filterFloat 1.6s ease-in-out infinite;
 }
+.face-filter-preview.esg-headband::before {
+    content: '';
+    width: 45px;
+    height: 35px;
+    background: url('propsforphototaking/esg-headband.png') center / contain no-repeat;
+    animation: filterFloat 1.6s ease-in-out infinite;
+}
+
 /* ===== Face filter preview icons (absolute paths) ===== */
 .face-filter-preview.rp-crown::before,
 .face-filter-preview.fingerheart::before,
@@ -5765,4 +5773,9 @@ body {
 .face-filter-preview.rp-go-green::before {
     width: 45px; height: 35px;
     background-image: url('/assets/propsforphototaking/RPGoGreenGoRP%21.png');
+}
+
+.face-filter-preview.esg-headband::before {
+    width: 45px; height: 35px;
+    background-image: url('/assets/propsforphototaking/esg-headband.png');
 }
