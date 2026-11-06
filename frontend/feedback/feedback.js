@@ -10607,7 +10607,7 @@ function resetInactivityTimer() {
         { id: 'esg-centre-2', name: 'ESG Centre 2', file: 'rp-esg-centre-frame2.png' },
         { id: 'esg-centre-3', name: 'ESG Centre 3', file: 'rp-esg-centre-frame3.png' },
         { id: 'esg-centre-4', name: 'ESG Centre 4', file: 'rp-esg-centre-frame4.png' },
-        { id: 'esg-centre-5', name: 'ESG Centre 5', file: 'rp-esg-centre-frame5.png' }
+        
         // If a frame's window is detected wrongly, add a manual override, e.g.
         // { id: 'esg-centre-3', name: 'ESG Centre 3', file: '...', cut: { x: 0.07, y: 0.16, w: 0.85, h: 0.72, radius: 0.02 } }
     ];
