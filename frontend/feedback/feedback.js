@@ -7124,7 +7124,7 @@ function drawRpSunglassesAccessory(ctx, geometry) {
 // ---------------------------------------------------------------------------
 const RP_GO_GREEN = {
     srcCandidates: ['/assets/propsforphototaking/rp-go-green.png', '/assets/propsforphototaking/RPGoGreenGoRP!.png', '/assets/propsforphototaking/RPGoGreenGoRP_.png'],
-    widthEyes: 2.5, anchorX: 0.55, anchorY: 0.82, smoothing: 0.5, holdMs: 400,
+    widthEyes: 2.1, anchorX: 0.55, anchorY: 0.82, smoothing: 0.5, holdMs: 400,
     fistRatio: 1.35,    // too strict? raise it (1.5). Open hand triggers it? lower it (1.2)
     debug: false,
     image: new Image(), srcIndex: 0, imageFailed: false,
@@ -7827,7 +7827,7 @@ const GESTURE_DELEGATE = 'CPU';   // CPU avoids clashing with the face tracker; 
 const HAND_PROP = {
     enabled: true,
     src: '/assets/propsforphototaking/rp-mascot.png',
-    widthHands: 1.0, holdGap: 0.45, holdMs: 300, graceMs: 400, followMs: 90
+    widthHands: 0.9, holdGap: 0.45, holdMs: 300, graceMs: 400, followMs: 90
 };
 const PARADE_PROP = {
     enabled: true,
