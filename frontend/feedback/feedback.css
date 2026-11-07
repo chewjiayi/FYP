@@ -5735,6 +5735,14 @@ body {
     background: url('propsforphototaking/esg-headband.png') center / contain no-repeat;
     animation: filterFloat 1.6s ease-in-out infinite;
 }
+.face-filter-preview.r.rp-water-crown::before {
+    content: '';
+    width: 45px;
+    height: 35px;
+    background: url('propsforphototaking/rp-water-crown.png') center / contain no-repeat;
+    animation: filterFloat 1.6s ease-in-out infinite;
+}
+
 
 /* ===== Face filter preview icons (absolute paths) ===== */
 .face-filter-preview.rp-crown::before,
@@ -5778,4 +5786,8 @@ body {
 .face-filter-preview.esg-headband::before {
     width: 45px; height: 35px;
     background-image: url('/assets/propsforphototaking/esg-headband.png');
+}
+.face-filter-preview.rp-wayfarer::before {
+    width: 45px; height: 35px;
+    background-image: url('/assets/propsforphototaking/rp-water-crown.png');
 }

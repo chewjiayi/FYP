@@ -10924,3 +10924,64 @@ function resetInactivityTimer() {
     }
     arOnReady(injectCard);
 })();
+
+// ============================================================================
+// RP WATER CROWN PROP (worn on head, hidden behind hands)
+// ============================================================================
+(function rpWaterCrownProp() {
+    const ID = 'rp-water-crown';
+
+    IMAGE_PROPS[ID] = {
+        src: '/assets/propsforphototaking/rp-water-crown.png',
+        widthEyes: 1.9,   // bigger number = wider crown
+        anchorX: 0.5,     // 0.5 = centred left/right
+        anchorY: 0.75,    // bigger = crown sits higher on the image's bottom edge
+        lift: 0.12        // bigger = crown moves up the head
+    };
+    const prop = IMAGE_PROPS[ID];
+    prop.image = new Image();
+    prop.image.onerror = () => console.error('[' + ID + '] image not found: ' + prop.src);
+    prop.image.src = prop.src;
+
+    // register the filter + let hands hide it like the other worn props
+    if (!FACE_ACCESSORY_IDS.includes(ID)) {
+        FACE_ACCESSORY_OPTIONS.push({ id: ID, label: 'RP Water Crown' });
+        FACE_ACCESSORY_IDS.push(ID);
+    }
+    if (!WORN_PROPS.includes(ID)) WORN_PROPS.push(ID);
+
+    // draw it (live preview + saved photo / boomerang / strip)
+    const drawOneFaceAccessoryBase = drawOneFaceAccessory;
+    drawOneFaceAccessory = function (ctx, geometry, width, height, time, primary) {
+        if (selectedFaceAccessory === ID) {
+            withOcclusion(ctx, width, height, (c) => drawWornImageProp(c, geometry, IMAGE_PROPS[ID]));
+            return;
+        }
+        return drawOneFaceAccessoryBase.apply(this, arguments);
+    };
+
+    // thumbnail + stop the "keep only requested filters" CSS rule from hiding the card
+    const style = document.createElement('style');
+    style.textContent =
+        'html body .face-filter-card.face-filter-card.face-filter-card[data-accessory="' + ID + '"]{display:grid !important}' +
+        '.face-filter-preview.rp-water-crown::before{content:"";width:50px;height:30px;' +
+        'background:url("' + prop.src + '") center / contain no-repeat;animation:filterFloat 1.6s ease-in-out infinite}';
+    document.head.appendChild(style);
+
+    // add the card to the swipe tray
+    function injectCard() {
+        const selector = document.getElementById('face-filter-selector');
+        if (!selector || selector.querySelector('[data-accessory="' + ID + '"]')) return;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'face-filter-card';
+        card.dataset.accessory = ID;
+        card.setAttribute('role', 'option');
+        card.setAttribute('aria-selected', 'false');
+        card.innerHTML = '<span class="face-filter-preview rp-water-crown"></span><span>Water Crown</span>';
+        card.addEventListener('click', () => selectFaceAccessory(ID));
+        selector.appendChild(card);
+        updateFaceAccessoryButtons();
+    }
+    arOnReady(injectCard);
+})();
