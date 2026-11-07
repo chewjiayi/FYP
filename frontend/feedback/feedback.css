@@ -5743,6 +5743,14 @@ body {
     animation: filterFloat 1.6s ease-in-out infinite;
 }
 
+.face-filter-preview.r.rp-eco-goggles::before {
+    content: '';
+    width: 45px;
+    height: 35px;
+    background: url('propsforphototaking/rp-eco-goggles.png') center / contain no-repeat;
+    animation: filterFloat 1.6s ease-in-out infinite;
+}
+
 
 /* ===== Face filter preview icons (absolute paths) ===== */
 .face-filter-preview.rp-crown::before,
@@ -5761,6 +5769,11 @@ body {
 .face-filter-preview.rp-crown::before {
     width: 44px; height: 24px;
     background-image: url('/assets/propsforphototaking/rp-crown.png');
+}
+
+.face-filter-preview.rp-eco-goggles::before {
+    width: 44px; height: 24px;
+    background-image: url('/assets/propsforphototaking/rp-eco-goggles.png');
 }
 .face-filter-preview.fingerheart::before {
     width: 50px; height: 40px;

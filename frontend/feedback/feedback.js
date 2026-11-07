@@ -10926,7 +10926,7 @@ function resetInactivityTimer() {
 })();
 
 // ============================================================================
-// RP WATER CROWN PROP (worn on head, hidden behind hands)
+// RP WATER CROWN PROP (worn on head)
 // ============================================================================
 (function rpWaterCrownProp() {
     const ID = 'rp-water-crown';
@@ -10979,6 +10979,84 @@ function resetInactivityTimer() {
         card.setAttribute('role', 'option');
         card.setAttribute('aria-selected', 'false');
         card.innerHTML = '<span class="face-filter-preview rp-water-crown"></span><span>Water Crown</span>';
+        card.addEventListener('click', () => selectFaceAccessory(ID));
+        selector.appendChild(card);
+        updateFaceAccessoryButtons();
+    }
+    arOnReady(injectCard);
+})();
+
+// ============================================================================
+// RP ECO GOGGLES PROP (worn over the eyes, follows head, hidden behind hands)
+// Image: /assets/propsforphototaking/rp-eco-goggles.png
+// ============================================================================
+(function rpEcoGogglesProp() {
+    const ID = 'rp-eco-goggles';
+
+    // ---- tuning knobs ----
+    const GOGGLES = {
+        src: '/assets/propsforphototaking/rp-eco-goggles.png',
+        widthEyes: 2.2,   // bigger = wider goggles
+        anchorY: 0.58,    // where the lens centre sits in the image (0 = top, 1 = bottom)
+        drop: 0.0,        // positive = move goggles down the face
+        image: new Image()
+    };
+    GOGGLES.image.onerror = () => console.error('[' + ID + '] image not found: ' + GOGGLES.src);
+    GOGGLES.image.src = GOGGLES.src;
+
+    function drawEcoGoggles(ctx, geometry) {
+        const image = GOGGLES.image;
+        if (!image.complete || !image.naturalWidth) return;
+
+        const pose = geometry.pose || { cosYaw: 1, cosPitch: 1 };
+        const drawWidth = (geometry.eyeDistance / pose.cosYaw) * GOGGLES.widthEyes;
+        const drawHeight = drawWidth * (image.naturalHeight / image.naturalWidth);
+
+        ctx.save();
+        ctx.translate(geometry.eyeCenter.x, geometry.eyeCenter.y + geometry.eyeDistance * GOGGLES.drop);
+        ctx.rotate(geometry.angle);
+        ctx.scale(pose.cosYaw, pose.cosPitch);
+        if (isMirrored) ctx.scale(-1, 1);   // keep the RP logo readable
+        ctx.drawImage(image, -drawWidth / 2, -drawHeight * GOGGLES.anchorY, drawWidth, drawHeight);
+        ctx.restore();
+    }
+
+    // register the filter + let hands hide it like the other worn props
+    if (!FACE_ACCESSORY_IDS.includes(ID)) {
+        FACE_ACCESSORY_OPTIONS.push({ id: ID, label: 'RP Eco Goggles' });
+        FACE_ACCESSORY_IDS.push(ID);
+    }
+    if (!WORN_PROPS.includes(ID)) WORN_PROPS.push(ID);
+
+    // draw it (live preview + saved photo / boomerang / strip)
+    const drawOneFaceAccessoryBase = drawOneFaceAccessory;
+    drawOneFaceAccessory = function (ctx, geometry, width, height, time, primary) {
+        if (selectedFaceAccessory === ID) {
+            withOcclusion(ctx, width, height, (c) => drawEcoGoggles(c, geometry));
+            return;
+        }
+        return drawOneFaceAccessoryBase.apply(this, arguments);
+    };
+
+    // thumbnail + make sure the card isn't hidden by other CSS rules
+    const style = document.createElement('style');
+    style.textContent =
+        'html body .face-filter-card.face-filter-card.face-filter-card[data-accessory="' + ID + '"]{display:grid !important}' +
+        '.face-filter-preview.rp-eco-goggles::before{content:"";width:54px;height:36px;' +
+        'background:url("' + GOGGLES.src + '") center / contain no-repeat;animation:filterFloat 1.6s ease-in-out infinite}';
+    document.head.appendChild(style);
+
+    // add the card to the swipe tray
+    function injectCard() {
+        const selector = document.getElementById('face-filter-selector');
+        if (!selector || selector.querySelector('[data-accessory="' + ID + '"]')) return;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'face-filter-card';
+        card.dataset.accessory = ID;
+        card.setAttribute('role', 'option');
+        card.setAttribute('aria-selected', 'false');
+        card.innerHTML = '<span class="face-filter-preview rp-eco-goggles"></span><span>Eco Goggles</span>';
         card.addEventListener('click', () => selectFaceAccessory(ID));
         selector.appendChild(card);
         updateFaceAccessoryButtons();
