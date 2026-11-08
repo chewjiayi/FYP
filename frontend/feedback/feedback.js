@@ -1895,11 +1895,13 @@ function startLandingVisitorCountLoop() { // Keep start-screen count live (DONE 
 
 // Detect if user is on mobile or desktop
 function detectDeviceType() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    currentDevice = isMobile ? 'mobile' : 'desktop';
+    const ua = navigator.userAgent;
+    // Phones only. Android tablets have no "Mobile" in the UA,
+    // and iPadOS 13+ reports itself as a Mac, so both fall through to 'desktop'.
+    const isPhone = /iPhone|iPod|Android.*Mobile|BlackBerry|IEMobile|Opera Mini|Windows Phone/i.test(ua);
+    const isOldIpad = /iPad/i.test(ua);   // iPadOS 12 and below
+    currentDevice = (isPhone && !isOldIpad) ? 'mobile' : 'desktop';
     console.log('Detected device:', currentDevice);
-
-    // Update UI classes for device-specific styling
     document.body.classList.add(`device-${currentDevice}`);
 }
 
