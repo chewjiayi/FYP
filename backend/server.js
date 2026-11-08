@@ -137,6 +137,7 @@ const os = require('os');
 const emailService = require('./emailService');
 const systemRoutes = require('./systemRoutes');   // System Status page APIs
 const hibernationRoutes = require('./hibernationRoutes');   // Hibernation policy settings (by Zhi Ruo)
+const hibernationEvaluator = require('./hibernationEvaluator');   // hibernation policy checker (by Zhi Ruo)
 const auth = require('./auth');
 const parametersConfigStore = require('./parametersConfigStore');
 
@@ -696,6 +697,9 @@ function printServerInfo(isHttps) {
 
     // Initialize data retention cleanup system
     dataRetentionCleanup.initializeCleanup();
+
+    // Start the hibernation policy checker (Dry Run is safe, see hibernationEvaluator.js)
+    hibernationEvaluator.start();
 }
 
 // Try to enable HTTPS if selfsigned package is available

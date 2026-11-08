@@ -3,11 +3,13 @@
 // Mounted in server.js at: /api/admin/hibernation
 //   GET /api/admin/hibernation/policy   -> current policy (defaults if never saved)
 //   PUT /api/admin/hibernation/policy   -> validate + save a new policy
+//   GET /api/admin/hibernation/status   -> policy checker status + recent decisions
 // BY ZHI RUO
 
 const express = require('express');
 const auth = require('./auth');
 const store = require('./hibernationPolicyStore');
+const evaluator = require('./hibernationEvaluator');
 
 const router = express.Router();
 
@@ -34,6 +36,10 @@ router.put('/policy', (req, res) => {
         console.error('Hibernation policy save error:', err);
         res.status(500).json({ success: false, error: 'Could not save hibernation policy' });
     }
+});
+
+router.get('/status', (req, res) => {
+    res.json({ success: true, ...evaluator.getStatus() });
 });
 
 module.exports = router;

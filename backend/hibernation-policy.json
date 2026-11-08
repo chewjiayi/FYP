@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "policyType": "idle",
+  "scheduled": {
+    "hibernateTime": "22:00",
+    "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  "idle": {
+    "timeoutMinutes": 60
+  },
+  "conditions": {
+    "skipWhenVisitorActive": true,
+    "warningMinutes": 5
+  },
+  "enforcement": "dry_run",
+  "updated_by": "systemadmin",
+  "last_updated": "2026-11-08T14:38:52.481Z"
+}
