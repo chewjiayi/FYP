@@ -6948,38 +6948,52 @@ function detectFaceAccessoryLandmarks(video) {
 }
 
 // Head turn / nod from the 3D landmarks (1 = facing the camera)
+
+// Head turn from the 3D landmarks. yaw is SIGNED (left/right), 0 = facing the camera
 const poseTracks = [];
 function estimateHeadPose(landmarks, w, h) {
-    const lc = landmarks[234], rc = landmarks[454], nose = landmarks[1], top = landmarks[10], chin = landmarks[152];
-    if (!lc || !rc || !nose || !top || !chin) return { cosYaw: 1, cosPitch: 1 };
+    const lc = landmarks[234], rc = landmarks[454], nose = landmarks[1];
+    if (!lc || !rc || !nose) return { yaw: 0, cosYaw: 1, cosPitch: 1 };
+
     const px = (p) => ({ x: p.x * w, y: p.y * h });
-    const L = px(lc), R = px(rc), N = px(nose), T = px(top), C = px(chin);
+    const L = px(lc), R = px(rc), N = px(nose);
 
-    const ax = R.x - L.x, ay = R.y - L.y, faceW = Math.hypot(ax, ay) || 1;
+    // face width axis (cheek to cheek) and its midpoint
+    const ax = R.x - L.x, ay = R.y - L.y;
+    const faceW = Math.hypot(ax, ay) || 1;
     const mx = (L.x + R.x) / 2, my = (L.y + R.y) / 2;
+
+    // how far the nose has moved away from the middle of the face, as a fraction of half the face width
     const turn = ((N.x - mx) * ax + (N.y - my) * ay) / faceW / (faceW / 2);
-    const yaw = Math.asin(Math.max(-1, Math.min(1, turn / 0.55)));
+    const rawYaw = Math.asin(Math.max(-1, Math.min(1, turn / 0.55)));
 
-    const ux = C.x - T.x, uy = C.y - T.y, faceH = Math.hypot(ux, uy) || 1;
-    const along = ((N.x - T.x) * ux + (N.y - T.y) * uy) / faceH / faceH;
-    const pitch = Math.min(0.8, Math.max(0, Math.abs(along - 0.6) - 0.04) * 2.2);
-
-    const cosYaw = Math.max(0.55, Math.cos(yaw));
-    const cosPitch = Math.max(0.7, Math.cos(pitch));
-
+    // smooth per face, so several people don't mix up their poses
     const now = performance.now();
-    for (let i = poseTracks.length - 1; i >= 0; i--) if (now - poseTracks[i].time > 500) poseTracks.splice(i, 1);
-    let best = null, bestD = faceW * 1.5;
-    poseTracks.forEach((t) => { const d = Math.hypot(t.cx - mx, t.cy - my); if (d < bestD) { best = t; bestD = d; } });
-    if (best) {
-        best.cosYaw += (cosYaw - best.cosYaw) * 0.35;
-        best.cosPitch += (cosPitch - best.cosPitch) * 0.35;
-        best.cx = mx; best.cy = my; best.time = now;
-        return { cosYaw: best.cosYaw, cosPitch: best.cosPitch };
+    for (let i = poseTracks.length - 1; i >= 0; i--) {
+        if (now - poseTracks[i].time > 500) poseTracks.splice(i, 1);
     }
-    poseTracks.push({ cx: mx, cy: my, cosYaw, cosPitch, time: now });
-    return { cosYaw, cosPitch };
+    let best = null, bestD = faceW * 1.5;
+    poseTracks.forEach((t) => {
+        const d = Math.hypot(t.cx - mx, t.cy - my);
+        if (d < bestD) { best = t; bestD = d; }
+    });
+
+    let yaw = rawYaw;
+    if (best) {
+        best.yaw += (rawYaw - best.yaw) * 0.35;   // lower = smoother but laggier
+        best.cx = mx; best.cy = my; best.time = now;
+        yaw = best.yaw;
+    } else {
+        poseTracks.push({ cx: mx, cy: my, yaw: rawYaw, time: now });
+    }
+
+    return {
+        yaw,
+        cosYaw: Math.max(0.55, Math.cos(yaw)),
+        cosPitch: 1            // nodding no longer squashes props
+    };
 }
+    
 
 function getFaceAccessoryGeometry(landmarks, width, height) {
     const pose = estimateHeadPose(landmarks, width, height);
@@ -7034,6 +7048,36 @@ Object.entries(IMAGE_PROPS).forEach(([id, prop]) => {
     prop.image.onerror = () => console.error(`[${id}] image not found: ${prop.src}`);
     prop.image.src = prop.src;
 });
+
+
+// Draws an image centred at (0,0) as if wrapped around a cylinder, turned by `yaw`
+function drawWrappedImage(ctx, image, drawW, drawH, yaw, anchorY = 0.5, wrap = 0.85, slices = 36) {
+    yaw = Math.max(-1.0, Math.min(1.0, yaw));
+    const R = (drawW / 2) / Math.sin(wrap);
+    const iw = image.naturalWidth, ih = image.naturalHeight;
+    const centreOffset = R * Math.sin(yaw);   // keeps the middle of the prop on the anchor point
+
+    for (let i = 0; i < slices; i++) {
+        const a0 = ((i / slices) * 2 - 1) * wrap + yaw;
+        const a1 = (((i + 1) / slices) * 2 - 1) * wrap + yaw;
+        const mid = (a0 + a1) / 2;
+        if (Math.cos(mid) < 0.08) continue;                 // slice is behind the head
+
+        const x0 = R * Math.sin(a0) - centreOffset;
+        const x1 = R * Math.sin(a1) - centreOffset;
+        const dh = drawH * (0.9 + 0.1 * Math.cos(mid));     // far side slightly smaller
+        const srcIndex = isMirrored ? slices - 1 - i : i;   // keep logo readable when mirrored
+
+        ctx.save();
+        if (isMirrored) {
+            const cx = (x0 + x1) / 2;
+            ctx.translate(cx, 0); ctx.scale(-1, 1); ctx.translate(-cx, 0);
+        }
+        ctx.drawImage(image, (srcIndex / slices) * iw, 0, iw / slices, ih,
+                      x0, -dh * anchorY, (x1 - x0) + 0.6, dh);
+        ctx.restore();
+    }
+}
 
 function drawWornImageProp(ctx, geometry, prop) {
     if (!prop) return;
@@ -9102,20 +9146,13 @@ function resetInactivityTimer() {
 })();
 
 (function fixPropScale() {
-    // 1) Make every overlay canvas crop exactly like the video (object-fit: cover)
+    // Make every overlay canvas crop exactly like the video (object-fit: cover)
     const style = document.createElement('style');
     style.id = 'prop-canvas-cover-fix';
     style.textContent =
         '#face-accessory-canvas,#fx-canvas,#hand-gesture-canvas,#wink-canvas,#reaction-canvas{' +
         'object-fit:cover !important;object-position:center !important}';
     document.head.appendChild(style);
-
-    // 2) Stop head-nod from squashing the worn props vertically
-    const originalEstimate = estimateHeadPose;
-    estimateHeadPose = function () {
-        const pose = originalEstimate.apply(this, arguments);
-        return { cosYaw: pose.cosYaw, cosPitch: 1 };
-    };
 })();
 
 
@@ -11000,29 +11037,33 @@ function resetInactivityTimer() {
         src: '/assets/propsforphototaking/rp-eco-goggles.png',
         widthEyes: 2.2,   // bigger = wider goggles
         anchorY: 0.58,    // where the lens centre sits in the image (0 = top, 1 = bottom)
-        drop: 0.0,        // positive = move goggles down the face
+        drop: 0.06, 
+         follow: 0.5,        
         image: new Image()
     };
     GOGGLES.image.onerror = () => console.error('[' + ID + '] image not found: ' + GOGGLES.src);
     GOGGLES.image.src = GOGGLES.src;
 
     function drawEcoGoggles(ctx, geometry) {
-        const image = GOGGLES.image;
-        if (!image.complete || !image.naturalWidth) return;
+    const image = GOGGLES.image;
+    if (!image.complete || !image.naturalWidth) return;
 
-        const pose = geometry.pose || { cosYaw: 1, cosPitch: 1 };
-        const drawWidth = (geometry.eyeDistance / pose.cosYaw) * GOGGLES.widthEyes;
-        const drawHeight = drawWidth * (image.naturalHeight / image.naturalWidth);
+    const pose = geometry.pose || { yaw: 0, cosYaw: 1 };
+    const drawWidth = (geometry.eyeDistance / pose.cosYaw) * GOGGLES.widthEyes;
+    const drawHeight = drawWidth * (image.naturalHeight / image.naturalWidth);
 
-        ctx.save();
-        ctx.translate(geometry.eyeCenter.x, geometry.eyeCenter.y + geometry.eyeDistance * GOGGLES.drop);
-        ctx.rotate(geometry.angle);
-        ctx.scale(pose.cosYaw, pose.cosPitch);
-        if (isMirrored) ctx.scale(-1, 1);   // keep the RP logo readable
-        ctx.drawImage(image, -drawWidth / 2, -drawHeight * GOGGLES.anchorY, drawWidth, drawHeight);
-        ctx.restore();
-    }
+    // slide the goggles toward the side the nose points to
+    const ux = Math.cos(geometry.angle), uy = Math.sin(geometry.angle);
+    const shift = ((geometry.noseTip.x - geometry.eyeCenter.x) * ux +
+                   (geometry.noseTip.y - geometry.eyeCenter.y) * uy) * GOGGLES.follow;
 
+    ctx.save();
+    ctx.translate(geometry.eyeCenter.x + ux * shift,
+                  geometry.eyeCenter.y + uy * shift + geometry.eyeDistance * GOGGLES.drop);
+    ctx.rotate(geometry.angle);
+    drawWrappedImage(ctx, image, drawWidth, drawHeight, pose.yaw, GOGGLES.anchorY);
+    ctx.restore();
+}
     // register the filter + let hands hide it like the other worn props
     if (!FACE_ACCESSORY_IDS.includes(ID)) {
         FACE_ACCESSORY_OPTIONS.push({ id: ID, label: 'RP Eco Goggles' });
