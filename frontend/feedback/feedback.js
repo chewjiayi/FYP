@@ -11106,3 +11106,44 @@ function resetInactivityTimer() {
     }
     arOnReady(injectCard);
 })();
+
+(async function batteryReporter() {
+  let deviceId = localStorage.getItem('kioskDeviceId');
+  if (!deviceId) {
+    deviceId = 'tablet-' + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem('kioskDeviceId', deviceId);
+  }
+
+  const post = (level, charging) =>
+    fetch('/api/kiosk/battery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId, level, charging })
+    }).catch(() => {});
+
+  // Native wrapper (Capacitor): for iPad later
+  const nativeDevice = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Device;
+  if (nativeDevice && nativeDevice.getBatteryInfo) {
+    const tick = async () => {
+      try {
+        const info = await nativeDevice.getBatteryInfo();
+        if (typeof info.batteryLevel === 'number') {
+          post(info.batteryLevel, !!info.isCharging);
+        }
+      } catch (e) {}
+    };
+    tick();
+    setInterval(tick, 60000);
+    return;
+  }
+
+  // Android Chrome/Edge
+  if (navigator.getBattery) {
+    const b = await navigator.getBattery();
+    const send = () => post(b.level, b.charging);
+    b.addEventListener('levelchange', send);
+    b.addEventListener('chargingchange', send);
+    send();
+    setInterval(send, 60000);
+  }
+})();

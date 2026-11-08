@@ -140,6 +140,7 @@ const hibernationRoutes = require('./hibernationRoutes');   // Hibernation polic
 const auth = require('./auth');
 const parametersConfigStore = require('./parametersConfigStore');
 
+
 function isMobileUserAgent(userAgent) {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent || '');
 }
@@ -427,6 +428,8 @@ app.use('/api/pulse', pulseRoutes);
 
 // Tree API for the leaves (names from feedback.db)
 app.use('/api/tree', treeRoutes);
+//Added battery routes
+app.use('/api/kiosk', require('./batteryRoutes'));
 
 app.get('/api/parameters', (req, res) => {
     try {

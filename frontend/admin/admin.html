@@ -3296,7 +3296,7 @@
                                 <div class="hw-chart-wrap"><canvas id="cpuUsageChart"></canvas></div>
                             </div>
 
-                            <!-- Storage -->
+                                                        <!-- Storage -->
                             <div class="hw-card">
                                 <div class="hw-card-header">
                                     <div>
@@ -3310,7 +3310,35 @@
 
                         </div>
                     </div>
-                </div>
+
+                    <!-- Tablet Battery -->
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h3>Tablet Battery</h3>
+                            <span class="status-item-label">Live · updates every 30s</span>
+                        </div>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tablet</th>
+                                        <th>Battery</th>
+                                        <th>Charging</th>
+                                        <th>Status</th>
+                                        <th>Last seen</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="batteryRows">
+                                    <tr>
+                                        <td colspan="5" style="text-align:center; padding:24px; color:#64748b;">
+                                            No tablets reporting yet
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div> <!-- closes system-status-page -->
 
                 <!-- Timer Countdown Page (DONE BY BERNISSA) -->
                 <div id="timer-countdown-page" class="page">
@@ -3770,6 +3798,7 @@
                         </div>
                     </div>
                 </div>
+                
 
                 
 

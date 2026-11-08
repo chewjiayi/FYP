@@ -1,0 +1,34 @@
+const express = require('express');
+const router = express.Router();
+
+const devices = new Map();            // deviceId -> latest report
+const STALE_MS = 3 * 60 * 1000;       // no report for 3 min = offline
+
+// Tablet -> server
+router.post('/battery', express.json(), (req, res) => {
+  const { deviceId, level, charging } = req.body || {};
+  if (!deviceId || typeof level !== 'number') {
+    return res.status(400).json({ error: 'invalid payload' });
+  }
+  devices.set(String(deviceId).slice(0, 64), {
+    level: Math.max(0, Math.min(1, level)),
+    charging: !!charging,
+    lastSeen: Date.now()
+  });
+  res.json({ ok: true });
+});
+
+// Admin -> server
+router.get('/battery', (req, res) => {
+  const now = Date.now();
+  res.json([...devices].map(([deviceId, d]) => ({
+    deviceId,
+    percent: Math.round(d.level * 100),
+    charging: d.charging,
+    lastSeen: d.lastSeen,
+    online: now - d.lastSeen < STALE_MS,
+    low: d.level <= 0.2 && !d.charging
+  })));
+});
+
+module.exports = router;

@@ -16523,3 +16523,26 @@ async function saveHibernationPolicy() {
         if (saveBtn) saveBtn.disabled = false;
     }
 }
+async function refreshBattery() {
+  const tbody = document.getElementById('batteryRows');
+  if (!tbody) return;
+  try {
+    const res = await fetch('/api/kiosk/battery');
+    const list = await res.json();
+    tbody.innerHTML = list.map(d => {
+      const status = !d.online ? 'OFFLINE' : d.low ? 'LOW' : 'OK';
+      const color = status === 'OK' ? 'green' : 'red';
+      return `<tr>
+        <td>${d.deviceId}</td>
+        <td>${d.percent}%</td>
+        <td>${d.charging ? 'Yes' : 'No'}</td>
+        <td style="color:${color};font-weight:bold">${status}</td>
+        <td>${new Date(d.lastSeen).toLocaleTimeString()}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5">Failed to load</td></tr>';
+  }
+}
+setInterval(refreshBattery, 30000);
+refreshBattery();
