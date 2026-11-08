@@ -129,6 +129,7 @@ const path = require('path');
 const session = require('express-session');
 const db = require('./db');
 const feedbackRoutes = require('./feedbackRoutes');
+const visitorArchiveRoutes = require('./visitorArchiveRoutes');   // Visitor data archive (by Zhi Ruo)
 const adminRoutes = require('./adminRoutes');
 const dataExportRoutes = require('./dataExportRoutes');
 const pledgeboardRoutes = require('./pledgeboardRoutes');
@@ -422,6 +423,7 @@ setTreeDatabase(db);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin/system', systemRoutes);
 app.use('/api/admin/hibernation', hibernationRoutes);  
+app.use('/api/admin/visitor-archive', visitorArchiveRoutes); 
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);

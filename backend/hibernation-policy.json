@@ -14,7 +14,7 @@
     ]
   },
   "idle": {
-    "timeoutMinutes": 60
+    "timeoutMinutes": 5
   },
   "conditions": {
     "skipWhenVisitorActive": true,
@@ -22,5 +22,5 @@
   },
   "enforcement": "dry_run",
   "updated_by": "systemadmin",
-  "last_updated": "2026-11-08T14:38:52.481Z"
+  "last_updated": "2026-11-08T15:01:43.796Z"
 }
