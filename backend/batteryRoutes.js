@@ -30,5 +30,20 @@ router.get('/battery', (req, res) => {
     low: d.level <= 0.2 && !d.charging
   })));
 });
+const si = require('systeminformation');
+
+async function reportServerBattery() {
+  try {
+    const b = await si.battery();
+    if (!b.hasBattery) return;                 // desktop PC, skip
+    devices.set('server-laptop', {
+      level: b.percent / 100,
+      charging: !!b.isCharging,
+      lastSeen: Date.now()
+    });
+  } catch (e) { /* ignore */ }
+}
+reportServerBattery();
+setInterval(reportServerBattery, 30000);
 
 module.exports = router;
