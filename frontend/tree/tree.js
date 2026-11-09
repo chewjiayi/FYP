@@ -108,6 +108,11 @@ const DEFAULT_BADGE_LEAF_COLORS = Object.freeze({
 class TreeManager {
 
     constructor() {
+        // Register GSAP plugins
+        if (typeof gsap !== 'undefined' && typeof MotionPathPlugin !== 'undefined') {
+            gsap.registerPlugin(MotionPathPlugin);
+        }
+
         // DOM Elements
         this.treeImage = document.getElementById('treeImage');
         this.treeImageLeaves = document.getElementById('treeImageLeaves');
@@ -1583,6 +1588,269 @@ class TreeManager {
         return null;
     }
 
+    // ==================== GSAP ANIMATION HELPERS ====================
+
+    animateLeafAppearWithGSAP(leaf, duration) {
+        // GSAP-based appear animation
+        gsap.fromTo(leaf,
+            {
+                opacity: 0,
+                scale: 0.6,
+                rotation: -15,
+                filter: "drop-shadow(0 4px 6px rgba(12, 50, 27, 0.1))"
+            },
+            {
+                opacity: this.leafOpacity,
+                scale: 1,
+                rotation: 0,
+                filter: "drop-shadow(0 8px 10px rgba(12, 50, 27, 0.25))",
+                duration: duration / 1000,
+                ease: "elastic.out(1, 0.75)"
+            }
+        );
+    }
+
+    animateLeafFallWithGSAP(leaf, fallDelay, fallDistance, drift, swayParams, rotationParams, duration) {
+        // Kill any existing GSAP animations on this leaf
+        gsap.killTweensOf(leaf);
+
+        const timeline = gsap.timeline({
+            delay: fallDelay,
+            onComplete: () => {
+                leaf.classList.add('leaf-fallen', 'leaf-cleared');
+            }
+        });
+
+        // Initial setup - leaf is stationary with scale 1 (same as landed size)
+        timeline.fromTo(leaf,
+            {
+                opacity: this.leafOpacity,
+                scale: 1
+            },
+            {
+                opacity: this.leafOpacity,
+                scale: 1,
+                duration: 0.1
+            }
+        );
+
+        // Create a sliding path with longer left-right distances
+        const pathPoints = [
+            { x: 0, y: 0 },
+            { x: 100, y: 100 },   // Long slide to the right
+            { x: -80, y: 200 },    // Long slide to the left
+            { x: 60, y: 300 },     // Slide to the right
+            { x: -40, y: 355 }     // Final slide to the left
+        ];
+
+        // Continuous falling with sliding motion - SLOWER
+        timeline.to(leaf, {
+            motionPath: {
+                path: pathPoints,
+                curviness: 1.2, // Moderate curviness for smooth sliding
+                autoRotate: false
+            },
+            scale: 1,
+            duration: 5, // Much slower (was 3.5s)
+            ease: "none"
+        });
+
+        // Add subtle rotation - gentle alternating clockwise and counter-clockwise
+        // Much smaller angles for fluent, wind-blown movement
+        timeline.to(leaf, {
+            rotation: 30,   // Clockwise (reduced from 120)
+            scale: 1,
+            duration: 1.3,
+            ease: "sine.inOut"
+        }, 0);
+
+        timeline.to(leaf, {
+            rotation: -35, // Counter-clockwise (reduced from -150)
+            scale: 1,
+            duration: 1.3,
+            ease: "sine.inOut"
+        }, 1.3);
+
+        timeline.to(leaf, {
+            rotation: 25,  // Clockwise (reduced from 100)
+            scale: 1,
+            duration: 1.2,
+            ease: "sine.inOut"
+        }, 2.6);
+
+        timeline.to(leaf, {
+            rotation: -20,  // Counter-clockwise (reduced from -80)
+            scale: 1,
+            duration: 1.2,
+            ease: "sine.inOut"
+        }, 3.8);
+
+        // Ground impact - small bounce
+        timeline.to(leaf, {
+            y: 360,
+            rotation: 5,  // Reduced from 20
+            scale: 1,
+            duration: 0.3,
+            ease: "power2.out"
+        });
+
+        // Final settling - slide and stop
+        timeline.to(leaf, {
+            x: -30,
+            rotation: 0,
+            scale: 1,
+            duration: 0.5,
+            ease: "power1.out"
+        });
+
+        // Final fade out
+        timeline.to(leaf, {
+            opacity: 0,
+            scale: 1,
+            duration: 0.5,
+            ease: "power2.in"
+        });
+
+        return timeline;
+    }
+
+    animateLeafLandingWithGSAP(leaf, startX, startY, finalX, finalY, duration, delay, windDirection, random) {
+        // Kill any existing GSAP animations
+        gsap.killTweensOf(leaf);
+
+        const timeline = gsap.timeline({
+            delay: delay,
+            onComplete: () => {
+                leaf.classList.remove('leaf-landing');
+                leaf.classList.add('leaf-landed');
+                // Start subtle wind movement after landing
+                this.startLeafWindMovement(leaf, random);
+            }
+        });
+
+        // Initial state: leaf starts far away (scale up for perspective)
+        timeline.set(leaf, {
+            opacity: 0,
+            scale: 2.5,
+            x: startX,
+            y: startY,
+            rotation: windDirection * -20
+        });
+
+        // Fade in as it approaches
+        timeline.to(leaf, {
+            opacity: this.leafOpacity,
+            duration: duration * 0.1,
+            ease: "power2.out"
+        });
+
+        // Generate curved path points for S-shaped movement
+        const curveAmplitude = 100 * windDirection;
+        const midX = (startX + finalX) / 2;
+        const midY = (startY + finalY) / 2;
+
+        // Create S-curve with 4 control points
+        const pathPoints = [
+            { x: startX, y: startY },
+            { x: startX + curveAmplitude * 0.5, y: startY + (midY - startY) * 0.4 },
+            { x: midX - curveAmplitude * 0.3, y: midY },
+            { x: midX + curveAmplitude * 0.4, y: finalY - (finalY - midY) * 0.4 },
+            { x: finalX, y: finalY }
+        ];
+
+        // Main floating movement with curved path
+        timeline.to(leaf, {
+            motionPath: {
+                path: pathPoints,
+                curviness: 2, // Higher curviness for more pronounced S-curve
+                autoRotate: false // We'll handle rotation separately
+            },
+            scale: 1,
+            rotation: windDirection * 30, // Total rotation during flight
+            duration: duration * 0.75,
+            ease: "sine.inOut" // Gentle, smooth easing for natural floating
+        });
+
+        // Approaching the branch - slow down and prepare for landing
+        timeline.to(leaf, {
+            x: finalX,
+            y: finalY,
+            rotation: windDirection * 20,
+            duration: duration * 0.15,
+            ease: "power2.out"
+        });
+
+        // Landing - gentle touch on branch
+        timeline.to(leaf, {
+            x: 0,
+            y: 0,
+            rotation: windDirection * 10,
+            duration: duration * 0.08,
+            ease: "power1.out"
+        });
+
+        // Settling - tiny bounce/adjustment (like real leaf touching branch)
+        timeline.to(leaf, {
+            y: "+=3",
+            duration: 0.3,
+            ease: "power1.out"
+        });
+
+        // Final settle into position with elastic bounce
+        timeline.to(leaf, {
+            x: 0,
+            y: 0,
+            rotation: 0,
+            duration: 0.2,
+            ease: "elastic.out(1, 0.5)" // Elastic bounce for natural settling
+        });
+
+        // Add subtle wiggle after landing (leaf settling on branch)
+        timeline.to(leaf, {
+            rotation: windDirection * 5,
+            duration: 0.25,
+            ease: "power1.inOut",
+            yoyo: true,
+            repeat: 1
+        });
+
+        return timeline;
+    }
+
+    startLeafWindMovement(leaf, random) {
+        // Subtle continuous wind movement for landed leaves
+        const swayAmount = 2 + random() * 3;
+        const swayDuration = 2 + random() * 1.5;
+        const windDirection = random() > 0.5 ? 1 : -1;
+
+        // Create a gentle swaying animation
+        gsap.to(leaf, {
+            rotation: windDirection * swayAmount,
+            duration: swayDuration,
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: -1,
+            // Add slight random variation
+            onRepeat: () => {
+                const variation = (random() - 0.5) * 2;
+                gsap.to(leaf, {
+                    rotation: windDirection * (swayAmount + variation),
+                    duration: swayDuration * 0.5,
+                    ease: "sine.inOut"
+                });
+            }
+        });
+
+        // Add very subtle position drift
+        gsap.to(leaf, {
+            x: windDirection * 1,
+            duration: swayDuration * 2,
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
     // ==================== LEAF CREATION ====================
 
     createLeaf(visitor, index, ovalArea) {
@@ -1701,6 +1969,9 @@ class TreeManager {
         leaf.style.setProperty('--leaf-appear-drift', `${appearDrift}px`);
         leaf.style.setProperty('--leaf-appear-rotation', `${appearRotation}deg`);
 
+        // Use GSAP for appear animation
+        this.animateLeafAppearWithGSAP(leaf, this.leafAnimationDuration);
+
         const baseLeafSize = 80 + ((visitor.visit_count || 1) * 5);
         const scale = isVip
             ? (typeof this.vipLeafDisplayScale === 'number' ? this.vipLeafDisplayScale : this.leafDisplayScale)
@@ -1738,7 +2009,7 @@ class TreeManager {
 
         const isFallingLeaf = this.activeLeafCycle?.fallingLeafKeys?.has(leafKey) === true;
         if (this.pendingLandingLeafKeys.has(leafKey) && !isFallingLeaf) {
-            this.configureLeafLandingAnimation(leaf, leafKey, position, leafSize, seededRandom, index, visitor);
+            this.configureLeafLandingAnimationGSAP(leaf, leafKey, position, leafSize, seededRandom, index, visitor);
         }
 
         const nameElement = document.createElement('div');
@@ -1763,15 +2034,15 @@ class TreeManager {
         this.leavesContainer.appendChild(leaf);
     }
 
-    configureLeafLandingAnimation(leaf, leafKey, position, leafSize, random, index, visitor) {
+    configureLeafLandingAnimationGSAP(leaf, leafKey, position, leafSize, random, index, visitor) {
         const windDirection = random() > 0.5 ? 1 : -1;
         const isDemoLanding = visitor?.isDemoLanding === true;
         const landingDuration = isDemoLanding
-            ? Math.round(4300 + random() * 500)
-            : Math.round(3200 + random() * 900);
+            ? Math.round(4300 + random() * 500) / 1000
+            : Math.round(3200 + random() * 900) / 1000;
         const landingDelay = isDemoLanding
-            ? 80
-            : Math.min(index * 70 + Math.round(random() * 120), 640);
+            ? 0.08
+            : Math.min(index * 0.07 + random() * 0.12, 0.64);
         const containerRect = this.leavesContainer?.getBoundingClientRect();
         const containerWidth = containerRect?.width || window.innerWidth || 1920;
         const containerHeight = containerRect?.height || window.innerHeight || 1080;
@@ -1785,49 +2056,22 @@ class TreeManager {
             : containerHeight * (0.62 + (random() * 0.12));
         const startX = Math.round(startCenterX - finalCenterX);
         const startY = Math.round(startCenterY - finalCenterY);
-        const swayAX = Math.round((startX * 0.68) + (windDirection * (80 + random() * 120)));
-        const swayAY = Math.round((startY * 0.72) - (26 + random() * 72));
-        const swayBX = Math.round((startX * 0.42) - (windDirection * (80 + random() * 150)));
-        const swayBY = Math.round((startY * 0.43) - (88 + random() * 120));
-        const approachX = Math.round((startX * 0.18) + (windDirection * (20 + random() * 56)));
-        const approachY = Math.round((startY * 0.16) - (34 + random() * 70));
-        const finalX = Math.round(windDirection * (6 + random() * 28));
-        const yaw = Math.round(windDirection * (22 + random() * 38));
-        const startRotate = Math.round(windDirection * -(16 + random() * 28));
-        const swayARotate = Math.round(windDirection * (22 + random() * 34));
-        const swayBRotate = Math.round(windDirection * -(12 + random() * 28));
-        const approachRotate = Math.round(windDirection * (14 + random() * 24));
-        const finalRotate = Math.round(windDirection * -(5 + random() * 18));
-        const flutterDuration = Math.round(500 + random() * 360);
-        const closeScale = (isDemoLanding ? 3.1 + random() * 0.4 : 2.25 + random() * 0.55).toFixed(2);
-        const nearScale = (isDemoLanding ? 2.24 + random() * 0.3 : 1.76 + random() * 0.26).toFixed(2);
-        const midScale = (isDemoLanding ? 1.62 + random() * 0.22 : 1.36 + random() * 0.18).toFixed(2);
-        const farScale = (isDemoLanding ? 1.14 + random() * 0.14 : 1.1 + random() * 0.12).toFixed(2);
 
         leaf.classList.add('leaf-landing');
         leaf.classList.toggle('leaf-demo-landing', isDemoLanding);
-        leaf.style.setProperty('--leaf-land-duration', `${landingDuration}ms`);
-        leaf.style.setProperty('--leaf-land-delay', `${landingDelay}ms`);
-        leaf.style.setProperty('--leaf-land-start-x', `${startX}px`);
-        leaf.style.setProperty('--leaf-land-start-y', `${startY}px`);
-        leaf.style.setProperty('--leaf-land-sway-a-x', `${swayAX}px`);
-        leaf.style.setProperty('--leaf-land-sway-a-y', `${swayAY}px`);
-        leaf.style.setProperty('--leaf-land-sway-b-x', `${swayBX}px`);
-        leaf.style.setProperty('--leaf-land-sway-b-y', `${swayBY}px`);
-        leaf.style.setProperty('--leaf-land-approach-x', `${approachX}px`);
-        leaf.style.setProperty('--leaf-land-approach-y', `${approachY}px`);
-        leaf.style.setProperty('--leaf-land-final-x', `${finalX}px`);
-        leaf.style.setProperty('--leaf-land-start-rotate', `${startRotate}deg`);
-        leaf.style.setProperty('--leaf-land-sway-a-rotate', `${swayARotate}deg`);
-        leaf.style.setProperty('--leaf-land-sway-b-rotate', `${swayBRotate}deg`);
-        leaf.style.setProperty('--leaf-land-approach-rotate', `${approachRotate}deg`);
-        leaf.style.setProperty('--leaf-land-final-rotate', `${finalRotate}deg`);
-        leaf.style.setProperty('--leaf-land-yaw', `${yaw}deg`);
-        leaf.style.setProperty('--leaf-land-flutter-duration', `${flutterDuration}ms`);
-        leaf.style.setProperty('--leaf-land-close-scale', closeScale);
-        leaf.style.setProperty('--leaf-land-near-scale', nearScale);
-        leaf.style.setProperty('--leaf-land-mid-scale', midScale);
-        leaf.style.setProperty('--leaf-land-far-scale', farScale);
+
+        // Use GSAP for the animation
+        this.animateLeafLandingWithGSAP(
+            leaf,
+            startX,
+            startY,
+            0, // finalX (relative to current position)
+            0, // finalY (relative to current position)
+            landingDuration,
+            landingDelay,
+            windDirection,
+            random
+        );
 
         if (this.landingCleanupTimers.has(leafKey)) {
             window.clearTimeout(this.landingCleanupTimers.get(leafKey));
@@ -1840,13 +2084,7 @@ class TreeManager {
             leaf.classList.add('leaf-landed');
         };
 
-        leaf.addEventListener('animationend', (event) => {
-            if (event.animationName === 'leafLandOnTree') {
-                cleanup();
-            }
-        }, { once: true });
-
-        const timer = window.setTimeout(cleanup, landingDelay + landingDuration + 350);
+        const timer = window.setTimeout(cleanup, (landingDelay + landingDuration + 0.35) * 1000);
         this.landingCleanupTimers.set(leafKey, timer);
     }
 
@@ -1878,7 +2116,30 @@ class TreeManager {
             .filter(leaf => fallingLeafKeys.has(leaf.dataset.leafKey));
 
         leaves.forEach(leaf => {
-            leaf.classList.add('leaf-falling');
+            const fallDelay = Number(leaf.dataset.fallDelay || 0) / 1000;
+            const fallDistance = parseFloat(leaf.style.getPropertyValue('--leaf-fall-distance') || '420');
+            const drift = parseFloat(leaf.style.getPropertyValue('--leaf-fall-drift') || '0');
+            const rotation = parseFloat(leaf.style.getPropertyValue('--leaf-fall-rotation') || '120');
+            const duration = Number(this.leafFallDuration) / 1000 || 4.2;
+
+            const random = this.createSeededRandom(leaf.dataset.leafKey || 'fall');
+            const windDirection = random() > 0.5 ? 1 : -1;
+
+            // GSAP animation with realistic physics
+            this.animateLeafFallWithGSAP(
+                leaf,
+                fallDelay,
+                fallDistance,
+                drift,
+                {
+                    amplitude: 20 + random() * 30,
+                    phase: random() * Math.PI * 2
+                },
+                {
+                    total: rotation
+                },
+                duration
+            );
         });
 
         if (this.leafFallStarted && this.leafFallCycleNumber === leafCycle.cycleNumber) return;
