@@ -8,7 +8,8 @@
 //   photos/            copies of the photo files (same sub-folders as in /uploads)
 //   manifest.json      counts, the record ids, and a SHA-256 checksum for every file
 //
-// This file only READS the database. Nothing here deletes anything.
+// Creating an archive only READS the database. Records are removed later, and only by
+// deleteFromDatabase(), which needs a verified archive on disk.
 // Emails stay ENCRYPTED in the archive (exactly as stored in the users table).
 // BY ZHI RUO
 
@@ -22,7 +23,7 @@ const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');   // same folder admi
 const ARCHIVE_ID_PATTERN = /^visitor-\d{8}-\d{6}$/;
 const CHUNK = 500;                                           // ids per "IN (...)" query
 
-let creating = false;                                        // only one archive can be built at a time
+let busy = false;                                            // only one create/delete runs at a time
 
 // ---------- Errors the routes can turn into HTTP codes ----------
 class ArchiveError extends Error {
@@ -248,8 +249,8 @@ async function verifyFolder(dir) {
 // ---------- Create ----------
 async function createArchive(before, scope, username) {
     validateFilter(before, scope);
-    if (creating) throw new ArchiveError('Another archive is already being created. Try again in a moment.', 409);
-    creating = true;
+    if (busy) throw new ArchiveError('Another archive operation is running. Try again in a moment.', 409);
+    busy = true;
 
     let tmpDir = null;
     try {
@@ -350,7 +351,7 @@ async function createArchive(before, scope, username) {
         return summarizeManifest(manifest);
     } finally {
         if (tmpDir && fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
-        creating = false;
+        busy = false;
     }
 }
 
@@ -399,7 +400,126 @@ async function verifyArchive(id) {
     return { ok: check.ok, problems: check.problems, archive: check.manifest ? summarizeManifest(check.manifest) : null };
 }
 
+
+// ---------- Helpers for the delete step ----------
+function getArchiveDir(id) {
+    if (!ARCHIVE_ID_PATTERN.test(String(id))) throw new ArchiveError('Invalid archive id');
+    const dir = path.join(ARCHIVE_DIR, id);
+    if (!fs.existsSync(dir)) throw new ArchiveError('Archive not found', 404);
+    return dir;
+}
+
+function writeManifest(dir, manifest) {
+    const tmp = path.join(dir, 'manifest.json.tmp');
+    fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2));
+    fs.renameSync(tmp, path.join(dir, 'manifest.json'));
+}
+
+// A transaction needs ONE connection for all its statements. db.beginTransaction()/commit() in db.js
+// send each statement through the pool, which can pick different connections, so we use our own.
+function getConnection() {
+    return new Promise((resolve, reject) => {
+        db.pool.getConnection((err, conn) => (err ? reject(err) : resolve(conn)));
+    });
+}
+
+function connQuery(conn, sql, params = []) {
+    return new Promise((resolve, reject) => {
+        conn.query(sql, params, (err, result) => (err ? reject(err) : resolve(result)));
+    });
+}
+
+async function countWhereIn(sql, ids) {
+    let total = 0;
+    for (const part of chunk(ids, CHUNK)) {
+        const rows = await queryAll(sql.replace('(?)', `(${part.map(() => '?').join(',')})`), part);
+        total += Number(rows[0].c);
+    }
+    return total;
+}
+
+// ---------- Delete from the database (needs a verified archive) ----------
+// Deletes EXACTLY the feedback ids saved in the archive, their answers and pledge likes, visitors
+// left with no feedback, and the photo files that were copied into the archive.
+async function deleteFromDatabase(id, username) {
+    const dir = getArchiveDir(id);
+    if (busy) throw new ArchiveError('Another archive operation is running. Try again in a moment.', 409);
+    busy = true;
+
+    try {
+        // 1. the archive must pass verification right now
+        const check = await verifyFolder(dir);
+        if (!check.ok) {
+            throw new ArchiveError('Archive failed verification, nothing was deleted: ' + check.problems.join('; '), 409);
+        }
+        const manifest = check.manifest;
+        if (manifest.dbDeleted) throw new ArchiveError('These records were already deleted from the database', 409);
+
+        const data = JSON.parse(fs.readFileSync(path.join(dir, 'visitor-data.json'), 'utf8'));
+        const ids = manifest.feedbackIds;
+        const userIds = [...new Set(data.feedback.map(f => f.user_id))];
+        const photoPaths = collectPhotoPaths(data.feedback);
+        const archivedFiles = new Set(manifest.files.map(f => f.path));
+
+        // 2. the database must not hold MORE than the archive saved (e.g. answers or likes added since)
+        const answersNow = await countWhereIn('SELECT COUNT(*) AS c FROM feedback_answers WHERE feedback_id IN (?)', ids);
+        const likesNow = await countWhereIn('SELECT COUNT(*) AS c FROM pledge_likes WHERE feedback_id IN (?)', ids);
+        if (answersNow > manifest.counts.answers || likesNow > manifest.counts.pledgeLikes) {
+            throw new ArchiveError('These records changed after the archive was made (new answers or likes). ' +
+                'Nothing was deleted. Create a new archive first.', 409);
+        }
+
+        // 3. delete everything in ONE transaction: all of it, or none of it
+        const result = { feedbackDeleted: 0, answersDeleted: 0, likesDeleted: 0, usersDeleted: 0 };
+        const conn = await getConnection();
+        try {
+            await connQuery(conn, 'START TRANSACTION');
+            for (const part of chunk(ids, CHUNK)) {
+                const marks = part.map(() => '?').join(',');
+                result.likesDeleted += (await connQuery(conn, `DELETE FROM pledge_likes WHERE feedback_id IN (${marks})`, part)).affectedRows;
+                result.answersDeleted += (await connQuery(conn, `DELETE FROM feedback_answers WHERE feedback_id IN (${marks})`, part)).affectedRows;
+                result.feedbackDeleted += (await connQuery(conn, `DELETE FROM feedback WHERE id IN (${marks})`, part)).affectedRows;
+            }
+            for (const part of chunk(userIds, CHUNK)) {
+                const marks = part.map(() => '?').join(',');
+                result.usersDeleted += (await connQuery(conn,
+                    `DELETE FROM users WHERE id IN (${marks})
+                     AND NOT EXISTS (SELECT 1 FROM feedback WHERE feedback.user_id = users.id)`, part)).affectedRows;
+            }
+            await connQuery(conn, 'COMMIT');
+        } catch (err) {
+            try { await connQuery(conn, 'ROLLBACK'); } catch (e) { /* connection already gone */ }
+            throw new ArchiveError('Database error, nothing was deleted: ' + err.message, 500);
+        } finally {
+            conn.release();
+        }
+
+        // 4. photo files (the database is already clean, so a problem here cannot undo it)
+        const photos = { deleted: 0, missing: 0, keptStillUsed: 0, keptNoCopy: 0, failed: [] };
+        for (const rel of photoPaths) {
+            const abs = resolvePhoto(rel);
+            if (!abs || !fs.existsSync(abs)) { photos.missing++; continue; }
+            if (!archivedFiles.has('photos/' + rel)) { photos.keptNoCopy++; continue; }   // never delete a file the archive doesn't hold
+            const stillUsed = await queryAll('SELECT id FROM feedback WHERE photo_path = ? OR processed_photo_path = ? LIMIT 1', [rel, rel]);
+            if (stillUsed.length > 0) { photos.keptStillUsed++; continue; }
+            try { fs.unlinkSync(abs); photos.deleted++; } catch (err) { photos.failed.push(rel); }
+        }
+
+        // 5. record it in the archive's manifest
+        manifest.dbDeleted = true;
+        manifest.dbDeletedAt = new Date().toISOString();
+        manifest.dbDeletedBy = username || 'unknown';
+        manifest.deleteResult = { ...result, photos };
+        writeManifest(dir, manifest);
+
+        return { archive: summarizeManifest(manifest), ...result, photos };
+    } finally {
+        busy = false;
+    }
+}
+
 module.exports = {
     ARCHIVE_DIR, ArchiveError,
-    previewArchive, createArchive, listArchives, verifyArchive
+    previewArchive, createArchive, listArchives, verifyArchive,
+    getArchiveDir, deleteFromDatabase
 };

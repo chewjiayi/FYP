@@ -5,10 +5,13 @@
 //   POST /create   { before, scope }                    -> write + verify an archive on disk
 //   GET  /list                                          -> archives already on disk
 //   POST /:id/verify                                    -> re-check an archive's files
-// This version never deletes anything from the database.
+//   GET  /:id/download                                  -> the archive as a ZIP (export)
+//   POST /:id/delete-from-database { password, confirmation:"DELETE" }
+//                                                       -> remove the archived records from the database
 // BY ZHI RUO
 
 const express = require('express');
+const archiver = require('archiver');
 const auth = require('./auth');
 const db = require('./db');
 const service = require('./visitorArchiveService');
@@ -75,6 +78,54 @@ router.post('/:id/verify', requireArchiveAccess, async (req, res) => {
     try {
         const result = await service.verifyArchive(req.params.id);
         res.json({ success: true, ...result });
+    } catch (err) { sendError(res, err); }
+});
+
+router.get('/:id/download', requireArchiveAccess, async (req, res) => {
+    try {
+        const dir = service.getArchiveDir(req.params.id);
+        const check = await service.verifyArchive(req.params.id);   // never hand out a damaged archive
+        if (!check.ok) {
+            return res.status(409).json({ success: false, error: 'Archive failed verification: ' + check.problems.join('; ') });
+        }
+
+        audit('ARCHIVE_DOWNLOADED', req.session.user.username, 'visitor_archive', check.archive.counts.feedback, req);
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${req.params.id}.zip"`);
+
+        const zip = archiver('zip', { zlib: { level: 6 } });
+        zip.on('error', err => { console.error('Archive zip error:', err); res.destroy(err); });
+        zip.pipe(res);
+        zip.directory(dir, false);
+        zip.finalize();
+    } catch (err) { sendError(res, err); }
+});
+
+router.post('/:id/delete-from-database', requireArchiveAccess, async (req, res) => {
+    const username = req.session.user.username;
+    const { password, confirmation } = req.body || {};
+
+    if (confirmation !== 'DELETE') {
+        return res.status(400).json({ success: false, error: 'Type DELETE to confirm' });
+    }
+    if (!password) {
+        return res.status(400).json({ success: false, error: 'Password verification required' });
+    }
+
+    // Re-check the admin's password (same call adminRoutes.js uses before its deletes)
+    const passwordOk = await new Promise(resolve => {
+        auth.loginUser(username, password, err => resolve(!err));
+    });
+    if (!passwordOk) {
+        audit('ARCHIVE_DB_DELETE_FAILED', username, 'visitor_archive', null, req);
+        return res.status(401).json({ success: false, error: 'Invalid password' });
+    }
+
+    try {
+        const result = await service.deleteFromDatabase(req.params.id, username);
+        audit('ARCHIVE_DB_DELETED', username, 'visitor_archive', result.feedbackDeleted, req);
+        console.log(`🗑️ Archive ${req.params.id}: ${username} deleted ${result.feedbackDeleted} records from the database`);
+        res.json({ success: true, result });
     } catch (err) { sendError(res, err); }
 });
 
