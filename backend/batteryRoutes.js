@@ -6,16 +6,7 @@ const STALE_MS = 3 * 60 * 1000;       // no report for 3 min = offline
 
 // Tablet -> server
 router.post('/battery', express.json(), (req, res) => {
-  const { deviceId, level, charging } = req.body || {};
-  if (!deviceId || typeof level !== 'number') {
-    return res.status(400).json({ error: 'invalid payload' });
-  }
-  devices.set(String(deviceId).slice(0, 64), {
-    level: Math.max(0, Math.min(1, level)),
-    charging: !!charging,
-    lastSeen: Date.now()
-  });
-  res.json({ ok: true });
+  res.json({ ok: true });   // ignore all reports
 });
 
 // Admin -> server
@@ -36,7 +27,7 @@ async function reportServerBattery() {
   try {
     const b = await si.battery();
     if (!b.hasBattery) return;                 // desktop PC, skip
-    devices.set('server-laptop', {
+    devices.set('Tablet', {
       level: b.percent / 100,
       charging: !!b.isCharging,
       lastSeen: Date.now()
