@@ -2199,6 +2199,104 @@
                                 </button>
                             </div>
                         </div>
+                        <!-- Visitor Data Archive (BY ZHI RUO) -->
+                        <div class="va-section" id="visitor-archive-section">
+                            <div class="va-header">
+                                <div>
+                                    <h3>🗄️ Visitor Data Archive</h3>
+                                    <p>Save visitor records to the server's disk, then remove them from the database.</p>
+                                </div>
+                                <span class="va-dir" id="va-archive-dir"></span>
+                            </div>
+
+                            <!-- Step 1: choose + preview + create -->
+                            <div class="va-step">
+                                <h4><span class="va-step-num">1</span> Choose records to archive</h4>
+                                <div class="va-form-row">
+                                    <div class="form-group">
+                                        <label for="va-before">Records created before</label>
+                                        <input type="date" id="va-before" onchange="resetVisitorArchivePreview()">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="va-scope">Which records</label>
+                                        <select id="va-scope" onchange="resetVisitorArchivePreview()">
+                                            <option value="archived">Only records marked Archived</option>
+                                            <option value="all">All records</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn-secondary" id="va-preview-btn" onclick="previewVisitorArchive()">Preview</button>
+                                </div>
+
+                                <div class="va-preview" id="va-preview" style="display: none;">
+                                    <div class="va-stats">
+                                        <div class="va-stat"><div class="va-stat-value" id="va-prev-feedback">0</div><div class="va-stat-label">Feedback records</div></div>
+                                        <div class="va-stat"><div class="va-stat-value" id="va-prev-visitors">0</div><div class="va-stat-label">Visitors</div></div>
+                                        <div class="va-stat"><div class="va-stat-value" id="va-prev-answers">0</div><div class="va-stat-label">Answers</div></div>
+                                        <div class="va-stat"><div class="va-stat-value" id="va-prev-likes">0</div><div class="va-stat-label">Pledge likes</div></div>
+                                        <div class="va-stat"><div class="va-stat-value" id="va-prev-photos">0</div><div class="va-stat-label">Photos on disk</div></div>
+                                        <div class="va-stat"><div class="va-stat-value" id="va-prev-size">0 B</div><div class="va-stat-label">Photo size</div></div>
+                                    </div>
+                                    <p class="va-preview-note" id="va-prev-note"></p>
+                                </div>
+
+                                <div class="va-actions">
+                                    <button type="button" class="btn-primary" id="va-create-btn" onclick="createVisitorArchive()" disabled>Create Archive</button>
+                                </div>
+                                <p class="va-hint">Creating an archive only copies data. Nothing is deleted until you choose Delete below.</p>
+                            </div>
+
+                            <!-- Step 2: archives on disk -->
+                            <div class="va-step">
+                                <h4><span class="va-step-num">2</span> Archives on disk</h4>
+                                <div class="va-table-wrap">
+                                    <table class="va-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Archive</th>
+                                                <th>Created</th>
+                                                <th>Records</th>
+                                                <th>Size</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="va-archives-body">
+                                            <tr><td colspan="6" class="va-empty">Loading archives...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <!-- Visitor archive: delete from database (BY ZHI RUO) -->
+                <div id="va-delete-modal" class="va-modal-overlay" style="display: none;">
+                    <div class="va-modal">
+                        <h3>Delete records from the database</h3>
+                        <p id="va-delete-summary"></p>
+                        <ul class="va-delete-list">
+                            <li>The feedback records, answers and pledge likes in this archive</li>
+                            <li>Visitors who have no feedback left</li>
+                            <li>The visitor photo files (copies stay in the archive)</li>
+                        </ul>
+                        <p class="va-delete-note">This cannot be undone. The archive on disk will be the only copy.</p>
+
+                        <div class="form-group">
+                            <label for="va-delete-password">Your password</label>
+                            <input type="password" id="va-delete-password" autocomplete="current-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="va-delete-confirm">Type DELETE to confirm</label>
+                            <input type="text" id="va-delete-confirm" autocomplete="off" placeholder="DELETE">
+                        </div>
+                        <div class="error-message" id="va-delete-error" style="display: none;"></div>
+
+                        <div class="va-modal-actions">
+                            <button type="button" class="btn-secondary" onclick="closeVisitorArchiveDeleteModal()">Cancel</button>
+                            <button type="button" class="btn-danger" id="va-delete-submit" onclick="submitVisitorArchiveDelete()">Delete from database</button>
+                        </div>
                     </div>
                 </div>
 
