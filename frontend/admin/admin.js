@@ -8502,6 +8502,9 @@ async function unlockDataExport(event) {
             
             // Update session info
             updateExportSessionInfo(30); // 30 minutes
+
+            // Load the visitor data archive card (by ZHI RUO)
+            initVisitorArchive();
             
             // Clear password field
             document.getElementById('export-password').value = '';
@@ -16546,3 +16549,316 @@ async function refreshBattery() {
 }
 setInterval(refreshBattery, 30000);
 refreshBattery();
+
+// ==================== VISITOR DATA ARCHIVE (BY ZHI RUO) ====================
+// Card on the Data Export page: preview, create, verify, download and delete archives.
+// Talks to: /api/admin/visitor-archive/...
+
+let vaPreviewed = null;          // { before, scope } of the preview the admin is looking at
+let vaArchives = [];             // archives from the last /list call
+let vaDeleteTargetId = null;     // archive the delete pop-up is open for
+let vaListenersAdded = false;
+
+function vaEl(id) {
+    return document.getElementById(id);
+}
+
+function vaFormatBytes(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    let n = bytes;
+    while (n >= 1024 && i < units.length - 1) {
+        n /= 1024;
+        i++;
+    }
+    return (i === 0 ? n : n.toFixed(1)) + ' ' + units[i];
+}
+
+// ---------- Talking to the server ----------
+async function vaRequest(path, options = {}) {
+    const response = await fetch('/api/admin/visitor-archive' + path, { credentials: 'same-origin', ...options });
+    let data = null;
+    try { data = await response.json(); } catch (e) { /* not JSON */ }
+
+    // 401 "Session locked" = the 30-minute Data Export unlock ran out (a wrong password is also 401)
+    if (response.status === 401 && data && /locked/i.test(data.error || '')) {
+        vaHandleLockedSession();
+        throw new Error('Session locked. Unlock Data Export again.');
+    }
+    if (!response.ok || !data || !data.success) {
+        throw new Error((data && data.error) || 'Request failed (' + response.status + ')');
+    }
+    return data;
+}
+
+function vaHandleLockedSession() {
+    dataExportUnlocked = false;
+    closeVisitorArchiveDeleteModal();
+    initDataExportPage();    // shows the password panel again
+    showNotification('Data Export session expired. Please unlock again.', 'error');
+}
+
+// ---------- Start-up (called when Data Export is unlocked) ----------
+function initVisitorArchive() {
+    const before = vaEl('va-before');
+    if (before) {
+        const t = new Date();
+        before.max = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    }
+    resetVisitorArchivePreview();
+
+    // click on the dark area around the pop-up closes it
+    if (!vaListenersAdded) {
+        vaEl('va-delete-modal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) closeVisitorArchiveDeleteModal();
+        });
+        vaListenersAdded = true;
+    }
+    loadVisitorArchives();
+}
+
+// ---------- Step 1: preview + create ----------
+function resetVisitorArchivePreview() {
+    vaPreviewed = null;
+    vaEl('va-preview').style.display = 'none';
+    vaEl('va-create-btn').disabled = true;
+}
+
+async function previewVisitorArchive() {
+    const before = vaEl('va-before').value;
+    const scope = vaEl('va-scope').value;
+    if (!before) {
+        showNotification('Choose a date first', 'error');
+        return;
+    }
+
+    const btn = vaEl('va-preview-btn');
+    btn.disabled = true;
+    try {
+        const data = await vaRequest(`/preview?before=${encodeURIComponent(before)}&scope=${encodeURIComponent(scope)}`);
+        const p = data.preview;
+
+        vaEl('va-prev-feedback').textContent = p.feedback;
+        vaEl('va-prev-visitors').textContent = p.visitors;
+        vaEl('va-prev-answers').textContent = p.answers;
+        vaEl('va-prev-likes').textContent = p.pledgeLikes;
+        vaEl('va-prev-photos').textContent = p.photosOnDisk;
+        vaEl('va-prev-size').textContent = vaFormatBytes(p.photoBytes);
+
+        const note = vaEl('va-prev-note');
+        if (p.feedback === 0) {
+            note.textContent = 'No records match. Try a later date or "All records".';
+            vaPreviewed = null;
+            vaEl('va-create-btn').disabled = true;
+        } else {
+            const missing = p.photosReferenced - p.photosOnDisk;
+            note.textContent = `Oldest ${new Date(p.oldest).toLocaleDateString()}, newest ${new Date(p.newest).toLocaleDateString()}.` +
+                (missing > 0 ? ` ${missing} photo file(s) are already missing from disk.` : '');
+            vaPreviewed = { before, scope };
+            vaEl('va-create-btn').disabled = false;
+        }
+        vaEl('va-preview').style.display = 'block';
+    } catch (error) {
+        console.error('❌ Archive preview error:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function createVisitorArchive() {
+    const before = vaEl('va-before').value;
+    const scope = vaEl('va-scope').value;
+    // only archive exactly what the admin previewed
+    if (!vaPreviewed || vaPreviewed.before !== before || vaPreviewed.scope !== scope) {
+        resetVisitorArchivePreview();
+        showNotification('Preview the records first', 'error');
+        return;
+    }
+
+    const btn = vaEl('va-create-btn');
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Creating archive...';
+    try {
+        const data = await vaRequest('/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ before, scope })
+        });
+        showNotification(`Archive ${data.archive.id} created: ${data.archive.counts.feedback} records, verified`, 'success');
+        resetVisitorArchivePreview();
+        await loadVisitorArchives();
+    } catch (error) {
+        console.error('❌ Archive create error:', error);
+        showNotification(error.message, 'error');
+        btn.disabled = false;
+    } finally {
+        btn.textContent = label;
+    }
+}
+
+// ---------- Step 2: archives on disk ----------
+async function loadVisitorArchives() {
+    try {
+        const data = await vaRequest('/list');
+        vaArchives = data.archives || [];
+        vaEl('va-archive-dir').textContent = data.archiveDir ? 'Saved in: ' + data.archiveDir : '';
+        renderVisitorArchives();
+    } catch (error) {
+        console.error('❌ Error loading archives:', error);
+        vaEl('va-archives-body').innerHTML =
+            '<tr><td colspan="6" class="va-empty">Could not load archives.</td></tr>';
+    }
+}
+
+function vaStatusBadge(a) {
+    if (a.status === 'damaged') return '<span class="va-badge va-badge-damaged">Damaged</span>';
+    if (a.dbDeleted) return '<span class="va-badge va-badge-deleted">Deleted from database</span>';
+    if (a.status === 'failed') return '<span class="va-badge va-badge-failed">Failed verification</span>';
+    if (a.status === 'verified') return '<span class="va-badge va-badge-verified">Verified</span>';
+    return '<span class="va-badge va-badge-created">Not verified</span>';
+}
+
+function renderVisitorArchives() {
+    const body = vaEl('va-archives-body');
+    if (vaArchives.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="va-empty">No archives yet. Create one above.</td></tr>';
+        return;
+    }
+
+    body.innerHTML = vaArchives.map(a => {
+        const id = escapeHtml(a.id);
+        const counts = a.counts || {};
+        const created = a.createdAt ? new Date(a.createdAt).toLocaleString() : '-';
+        const filter = a.filter
+            ? `<br><small>Before ${escapeHtml(a.filter.before)}, ${a.filter.scope === 'all' ? 'all records' : 'archived only'}</small>`
+            : '';
+        const by = a.createdBy ? `<br><small>by ${escapeHtml(a.createdBy)}</small>` : '';
+
+        let actions = '';
+        if (a.status !== 'damaged') {
+            actions += `<button type="button" class="btn-secondary btn-sm" onclick="downloadVisitorArchive('${id}')">Download</button>`;
+            actions += `<button type="button" class="btn-secondary btn-sm" onclick="verifyVisitorArchive('${id}')">Re-verify</button>`;
+            if (a.status === 'verified' && !a.dbDeleted) {
+                actions += `<button type="button" class="btn-danger btn-sm" onclick="openVisitorArchiveDeleteModal('${id}')">Delete from database</button>`;
+            }
+        }
+
+        return `
+            <tr>
+                <td class="va-id">${id}${filter}</td>
+                <td>${escapeHtml(created)}${by}</td>
+                <td>${counts.feedback ?? '-'}<br><small>${counts.visitors ?? '-'} visitors, ${counts.photosCopied ?? 0} photos</small></td>
+                <td>${vaFormatBytes(a.sizeBytes)}</td>
+                <td>${vaStatusBadge(a)}</td>
+                <td><div class="va-row-actions">${actions}</div></td>
+            </tr>`;
+    }).join('');
+}
+
+async function verifyVisitorArchive(id) {
+    showNotification('Checking archive files...', 'info');
+    try {
+        const data = await vaRequest(`/${encodeURIComponent(id)}/verify`, { method: 'POST' });
+        if (data.ok) {
+            showNotification('Archive verified: all files match', 'success');
+        } else {
+            showNotification('Archive problem: ' + data.problems.slice(0, 2).join('; '), 'error');
+        }
+        await loadVisitorArchives();
+    } catch (error) {
+        console.error('❌ Archive verify error:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+// The browser streams the ZIP straight to disk (photos can be large, so no blob in memory)
+async function downloadVisitorArchive(id) {
+    try {
+        await vaRequest('/list');    // makes sure the Data Export unlock is still active
+        showNotification('Checking and preparing the download...', 'info');
+        const a = document.createElement('a');
+        a.href = `/api/admin/visitor-archive/${encodeURIComponent(id)}/download`;
+        a.download = `${id}.zip`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('❌ Archive download error:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+// ---------- Delete from database ----------
+function openVisitorArchiveDeleteModal(id) {
+    const archive = vaArchives.find(a => a.id === id);
+    if (!archive) return;
+
+    vaDeleteTargetId = id;
+    vaEl('va-delete-summary').textContent =
+        `Archive ${id}: ${archive.counts.feedback} feedback records from ${archive.counts.visitors} visitors ` +
+        `(created before ${archive.filter.before}).`;
+    vaEl('va-delete-password').value = '';
+    vaEl('va-delete-confirm').value = '';
+    vaEl('va-delete-error').style.display = 'none';
+    vaEl('va-delete-submit').disabled = false;
+    vaEl('va-delete-modal').style.display = 'flex';
+    vaEl('va-delete-password').focus();
+}
+
+function closeVisitorArchiveDeleteModal() {
+    vaDeleteTargetId = null;
+    const modal = vaEl('va-delete-modal');
+    if (modal) modal.style.display = 'none';
+    const pw = vaEl('va-delete-password');
+    if (pw) pw.value = '';          // never leave the password sitting in the page
+    const confirmBox = vaEl('va-delete-confirm');
+    if (confirmBox) confirmBox.value = '';
+}
+
+function vaShowDeleteError(message) {
+    const box = vaEl('va-delete-error');
+    box.textContent = message;
+    box.style.display = 'block';
+}
+
+async function submitVisitorArchiveDelete() {
+    const id = vaDeleteTargetId;
+    if (!id) return;
+
+    const password = vaEl('va-delete-password').value;
+    const confirmation = vaEl('va-delete-confirm').value.trim();
+    if (!password) { vaShowDeleteError('Enter your password'); return; }
+    if (confirmation !== 'DELETE') { vaShowDeleteError('Type DELETE (in capitals) to confirm'); return; }
+
+    const btn = vaEl('va-delete-submit');
+    btn.disabled = true;
+    vaEl('va-delete-error').style.display = 'none';
+
+    try {
+        const data = await vaRequest(`/${encodeURIComponent(id)}/delete-from-database`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password, confirmation })
+        });
+        const r = data.result;
+        closeVisitorArchiveDeleteModal();
+        showNotification(
+            `Deleted ${r.feedbackDeleted} records, ${r.usersDeleted} visitors and ${r.photos.deleted} photos from the database`,
+            'success');
+        if (r.photos.failed.length > 0) {
+            showNotification(`${r.photos.failed.length} photo file(s) could not be removed from the uploads folder`, 'error');
+        }
+        await loadVisitorArchives();
+    } catch (error) {
+        console.error('❌ Archive delete error:', error);
+        if (vaEl('va-delete-modal').style.display !== 'none') {
+            vaShowDeleteError(error.message);
+            vaEl('va-delete-password').value = '';
+            btn.disabled = false;
+        }
+    }
+}
