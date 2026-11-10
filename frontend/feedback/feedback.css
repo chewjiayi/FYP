@@ -3946,7 +3946,7 @@ textarea:focus,
 #land-page-no-qrcode #start-feedback-btn,
 #land-page-qrcode [data-text-target="start-feedback-btn"] {
     justify-content: center !important;
-    width: var(--start-button-width, 280px) !important;
+    width: 478px !important;
     min-height: var(--start-button-height, 64px) !important;
     margin-left: var(--start-button-x, 0px) !important;
     margin-top: var(--start-button-y, 0px) !important;
