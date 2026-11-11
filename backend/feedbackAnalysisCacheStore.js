@@ -528,6 +528,58 @@ async function reloadCache() {
     return storageMode;
 }
 
+// ==================== ARCHIVING SUPPORT (BY ZHI RUO) ====================
+// Lets the AI cache archive job list the live entries and remove old ones from ALL layers
+// (memory, JSON file and database) so they cannot come back from another layer.
+
+// Snapshot of every entry in the live cache (copies, so callers cannot change the cache by accident)
+async function getAllEntries() {
+    await ensureReady();
+    return Array.from(cacheMap.values()).map(entry => ({ ...entry }));
+}
+
+// Remove entries by cache key. If notUsedSince is given, an entry that was used again after that
+// moment is kept (it may have been used while the archive was being written).
+async function removeEntries(cacheKeys, { notUsedSince } = {}) {
+    await ensureReady();
+
+    const limit = notUsedSince ? new Date(notUsedSince).getTime() : null;
+    const keys = [];
+    let skippedRecentlyUsed = 0;
+
+    new Set(cacheKeys || []).forEach(key => {
+        const entry = cacheMap.get(key);
+        if (!entry) return;
+        if (limit !== null && !(new Date(entry.lastUsedAt).getTime() < limit)) {
+            skippedRecentlyUsed++;
+            return;
+        }
+        keys.push(key);
+    });
+
+    if (keys.length === 0) {
+        return { removed: 0, skippedRecentlyUsed };
+    }
+
+    // Database first. If it fails we stop BEFORE touching memory or the file, so the layers stay in step.
+    if (storageMode === 'database' || storageMode === 'both') {
+        for (let i = 0; i < keys.length; i += 500) {
+            await db.pool.promise().query(
+                `DELETE FROM ${CACHE_TABLE} WHERE cache_key IN (?)`,
+                [keys.slice(i, i + 500)]
+            );
+        }
+    }
+
+    keys.forEach(key => cacheMap.delete(key));
+
+    if (storageMode === 'json' || storageMode === 'both') {
+        writeCacheToFile();
+    }
+
+    return { removed: keys.length, skippedRecentlyUsed };
+}
+
 module.exports = {
     ensureReady,
     getMany,
@@ -538,5 +590,7 @@ module.exports = {
     getStorageMode,
     setStorageMode,
     reloadCache,
-    normalizeStorageMode
+    normalizeStorageMode,
+    getAllEntries,
+    removeEntries
 };
