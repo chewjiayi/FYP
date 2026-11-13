@@ -9056,6 +9056,7 @@ function showPage(pageName) {
         loadFlaggedFeedback();
         loadVisitorTrendsData();
         loadCacheStorageMode();
+        loadAiCacheArchive();   // AI cache archiving schedule
     } else if (pageName === 'digital-tree') {
         loadDigitalTreeData();
     } else if (pageName === 'pledgeboard') {
@@ -16860,5 +16861,290 @@ async function submitVisitorArchiveDelete() {
             vaEl('va-delete-password').value = '';
             btn.disabled = false;
         }
+    }
+}
+
+// ==================== AI CACHE ARCHIVING (BY ZHI RUO) ====================
+// "AI Cache Archiving" section in the AI cache storage tab (Feedback Reports page).
+// Talks to: /api/admin/ai-cache-archive/...
+
+const ACA_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+let acaSavedSettings = null;     // the schedule as the server has it saved
+
+function acaEl(id) {
+    return document.getElementById(id);
+}
+
+function acaFormatBytes(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    let n = bytes;
+    while (n >= 1024 && i < units.length - 1) {
+        n /= 1024;
+        i++;
+    }
+    return (i === 0 ? n : n.toFixed(1)) + ' ' + units[i];
+}
+
+async function acaRequest(path, options = {}) {
+    const response = await fetch('/api/admin/ai-cache-archive' + path, { credentials: 'same-origin', ...options });
+    let data = null;
+    try { data = await response.json(); } catch (e) { /* not JSON */ }
+    if (!response.ok || !data || !data.success) {
+        throw new Error((data && data.error) || 'Request failed (' + response.status + ')');
+    }
+    return data;
+}
+
+// ---------- Form <-> settings ----------
+function readAiCacheArchiveForm() {
+    return {
+        enabled: acaEl('aca-enabled').checked,
+        frequency: acaEl('aca-frequency').value,
+        dayOfWeek: parseInt(acaEl('aca-day-of-week').value, 10),
+        dayOfMonth: parseInt(acaEl('aca-day-of-month').value, 10),
+        time: acaEl('aca-time').value,
+        unusedForDays: parseInt(acaEl('aca-unused-days').value, 10),
+        keepArchives: parseInt(acaEl('aca-keep').value, 10)
+    };
+}
+
+function fillAiCacheArchiveForm(s) {
+    acaEl('aca-enabled').checked = !!s.enabled;
+    acaEl('aca-frequency').value = s.frequency;
+    acaEl('aca-day-of-week').value = String(s.dayOfWeek);
+    acaEl('aca-day-of-month').value = String(s.dayOfMonth);
+    acaEl('aca-time').value = s.time;
+    acaEl('aca-unused-days').value = s.unusedForDays;
+    acaEl('aca-keep').value = s.keepArchives;
+    onAiCacheArchiveFormChange();
+}
+
+// Has the admin changed anything that is not saved yet?
+function acaIsDirty() {
+    if (!acaSavedSettings) return false;
+    const f = readAiCacheArchiveForm();
+    const s = acaSavedSettings;
+    return f.enabled !== s.enabled || f.frequency !== s.frequency || f.dayOfWeek !== s.dayOfWeek ||
+        f.dayOfMonth !== s.dayOfMonth || f.time !== s.time ||
+        f.unusedForDays !== s.unusedForDays || f.keepArchives !== s.keepArchives;
+}
+
+// ---------- Plain-English summary ----------
+function describeAiCacheArchive(s) {
+    if (!s.enabled) {
+        return 'Automatic archiving is OFF. Nothing runs by itself, but you can still use Run now.';
+    }
+
+    let when;
+    if (s.frequency === 'daily') when = `every day at ${s.time || '--:--'}`;
+    else if (s.frequency === 'weekly') when = `every ${ACA_DAY_NAMES[s.dayOfWeek] || '?'} at ${s.time || '--:--'}`;
+    else when = `on day ${s.dayOfMonth} of every month at ${s.time || '--:--'}`;
+
+    return `Runs ${when} (server time). Entries not used for ${s.unusedForDays || '--'} days are saved to a file ` +
+        `and removed from the live cache. The newest ${s.keepArchives || '--'} archive files are kept.`;
+}
+
+function onAiCacheArchiveFormChange() {
+    const s = readAiCacheArchiveForm();
+
+    acaEl('aca-enabled-label').textContent = s.enabled ? 'Automatic archiving is ON' : 'Automatic archiving is OFF';
+    acaEl('aca-fields').classList.toggle('aca-disabled', !s.enabled);
+
+    // only the day field that matches "How often"
+    acaEl('aca-weekday-group').classList.toggle('aca-hidden', s.frequency !== 'weekly');
+    acaEl('aca-monthday-group').classList.toggle('aca-hidden', s.frequency !== 'monthly');
+
+    acaEl('aca-summary').textContent = describeAiCacheArchive(s);
+}
+
+// ---------- Status, history, files ----------
+function renderAiCacheArchiveStatus(settings, status) {
+    const badge = acaEl('aca-status-badge');
+    badge.className = 'status-badge ' + (settings.enabled ? 'active' : 'inactive');
+    badge.textContent = settings.enabled ? 'ON' : 'OFF';
+
+    acaEl('aca-next-run').textContent = settings.enabled && status.nextRunAt
+        ? new Date(status.nextRunAt).toLocaleString()
+        : 'Not scheduled';
+
+    const last = status.lastRun;
+    acaEl('aca-last-run').textContent = last
+        ? `${new Date(last.finishedAt).toLocaleString()} (${acaResultLabel(last.status)})`
+        : 'Never';
+
+    acaEl('aca-run-btn').disabled = !!status.running;
+
+    if (settings.last_updated) {
+        acaEl('aca-last-saved').textContent = `Last saved by ${settings.updated_by} on ${new Date(settings.last_updated).toLocaleString()}`;
+    } else {
+        acaEl('aca-last-saved').textContent = 'Not saved yet. These are the default settings.';
+    }
+}
+
+function acaResultLabel(status) {
+    if (status === 'success') return 'Archived';
+    if (status === 'nothing') return 'Nothing to archive';
+    return 'Failed';
+}
+
+function renderAiCacheArchiveHistory(history) {
+    const body = acaEl('aca-history-body');
+    if (!history || history.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="aca-empty">No runs yet.</td></tr>';
+        return;
+    }
+
+    body.innerHTML = history.map(run => {
+        const cls = run.status === 'success' ? 'aca-badge-success'
+            : run.status === 'nothing' ? 'aca-badge-nothing' : 'aca-badge-failed';
+        const by = run.startedBy === 'schedule' ? 'Schedule' : run.startedBy;
+        const kept = run.keptBecauseUsedAgain > 0 ? ` (${run.keptBecauseUsedAgain} kept because they were used again)` : '';
+        return `
+            <tr>
+                <td>${escapeHtml(new Date(run.finishedAt).toLocaleString())}</td>
+                <td>${escapeHtml(by)}</td>
+                <td><span class="aca-badge ${cls}">${escapeHtml(acaResultLabel(run.status))}</span></td>
+                <td>${run.archived ?? 0}</td>
+                <td>${run.removed ?? 0}</td>
+                <td class="aca-detail">${escapeHtml(run.message)}${escapeHtml(kept)}</td>
+            </tr>`;
+    }).join('');
+}
+
+function renderAiCacheArchiveFiles(archiveDir, files) {
+    acaEl('aca-archive-dir').textContent = archiveDir ? 'Saved in: ' + archiveDir : '';
+    const body = acaEl('aca-files-body');
+    if (!files || files.length === 0) {
+        body.innerHTML = '<tr><td colspan="4" class="aca-empty">No archive files yet.</td></tr>';
+        return;
+    }
+
+    body.innerHTML = files.map(f => {
+        const name = escapeHtml(f.name);
+        return `
+            <tr>
+                <td>${name}</td>
+                <td>${escapeHtml(new Date(f.modifiedAt).toLocaleString())}</td>
+                <td>${acaFormatBytes(f.sizeBytes)}</td>
+                <td><button type="button" class="btn-secondary btn-sm" onclick="downloadAiCacheArchive('${name}')">Download</button></td>
+            </tr>`;
+    }).join('');
+}
+
+// ---------- Load ----------
+async function loadAiCacheArchive() {
+    if (!acaEl('aca-form')) return;
+
+    try {
+        const [settingsData, filesData] = await Promise.all([
+            acaRequest('/settings'),
+            acaRequest('/archives')
+        ]);
+        acaSavedSettings = settingsData.settings;
+        fillAiCacheArchiveForm(settingsData.settings);
+        renderAiCacheArchiveStatus(settingsData.settings, settingsData.status);
+        renderAiCacheArchiveHistory(settingsData.status.history);
+        renderAiCacheArchiveFiles(filesData.archiveDir, filesData.archives);
+    } catch (error) {
+        console.error('❌ Error loading AI cache archiving:', error);
+        acaEl('aca-summary').textContent = 'Could not load the archiving schedule.';
+        showNotification('Failed to load AI cache archiving: ' + error.message, 'error');
+    }
+}
+
+// ---------- Save ----------
+function validateAiCacheArchiveForm(s) {
+    const errors = [];
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s.time || '')) errors.push('Choose a time');
+    if (!Number.isInteger(s.unusedForDays) || s.unusedForDays < 1 || s.unusedForDays > 365) {
+        errors.push('Unused days must be 1 to 365');
+    }
+    if (!Number.isInteger(s.keepArchives) || s.keepArchives < 1 || s.keepArchives > 104) {
+        errors.push('Archive files to keep must be 1 to 104');
+    }
+    return errors;
+}
+
+async function saveAiCacheArchiveSettings() {
+    const form = readAiCacheArchiveForm();
+    const errors = validateAiCacheArchiveForm(form);
+    if (errors.length > 0) {
+        showNotification(errors.join('. '), 'error');
+        return;
+    }
+
+    const btn = acaEl('aca-save-btn');
+    btn.disabled = true;
+    try {
+        const data = await acaRequest('/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(form)
+        });
+        acaSavedSettings = data.settings;
+        fillAiCacheArchiveForm(data.settings);
+        renderAiCacheArchiveStatus(data.settings, data.status);
+        showNotification(
+            data.settings.enabled
+                ? 'Schedule saved. Next run: ' + new Date(data.status.nextRunAt).toLocaleString()
+                : 'Schedule saved (automatic archiving is off)',
+            'success');
+    } catch (error) {
+        console.error('❌ Error saving AI cache archiving schedule:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ---------- Run now ----------
+async function runAiCacheArchiveNow() {
+    if (!acaSavedSettings) return;
+
+    // Run now uses the SAVED schedule, so unsaved edits would be ignored. Ask the admin to save first.
+    if (acaIsDirty()) {
+        showNotification('Save your changes first. Run now uses the saved schedule.', 'error');
+        return;
+    }
+
+    const days = acaSavedSettings.unusedForDays;
+    if (!confirm(`Archive now? Entries not used for ${days} days will be saved to a file and removed from the live cache.`)) {
+        return;
+    }
+
+    const btn = acaEl('aca-run-btn');
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+    try {
+        const data = await acaRequest('/run', { method: 'POST' });
+        const r = data.result;
+        showNotification(r.message, r.status === 'failed' ? 'error' : r.status === 'nothing' ? 'info' : 'success');
+        await loadAiCacheArchive();
+    } catch (error) {
+        console.error('❌ Error running AI cache archive:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        btn.textContent = label;
+        btn.disabled = false;
+    }
+}
+
+// ---------- Download ----------
+async function downloadAiCacheArchive(name) {
+    try {
+        await acaRequest('/archives');    // confirms the admin session is still valid
+        const a = document.createElement('a');
+        a.href = `/api/admin/ai-cache-archive/archives/${encodeURIComponent(name)}/download`;
+        a.download = name;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('❌ Error downloading AI cache archive:', error);
+        showNotification(error.message, 'error');
     }
 }
