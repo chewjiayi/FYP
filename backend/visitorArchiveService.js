@@ -48,13 +48,21 @@ function chunk(list, size) {
 
 // ---------- Input checks ----------
 function validateFilter(before, scope) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(before))) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(before));
+    if (!match) {
         throw new ArchiveError('Choose a date (YYYY-MM-DD)');
     }
-    const d = new Date(before + 'T00:00:00');
-    if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== before) {
+
+    // Compare the date parts directly. (toISOString() converts to UTC, which shifts the day
+    // for any server running ahead of UTC, such as Singapore, and wrongly rejects every date.)
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const d = new Date(year, month - 1, day);
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
         throw new ArchiveError('That is not a real date');
     }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (d > today) {
