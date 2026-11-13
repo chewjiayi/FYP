@@ -769,6 +769,149 @@
                                 <div id="ai-cache-storage-status" class="fm-status fm-status--hidden" aria-live="polite" style="margin-top: 14px;"></div>
                             </div>
                         </div>
+                        
+                        <!-- AI cache archiving schedule (BY ZHI RUO) -->
+                        <div class="feedback-section aca-section" id="ai-cache-archive-section">
+                            <div class="section-header">
+                                <div>
+                                    <h2>AI Cache Archiving</h2>
+                                    <p>Move old AI cache entries to files on the server's disk, on a schedule, to keep the live cache small.</p>
+                                </div>
+                                <span id="aca-status-badge" class="status-badge inactive">Loading...</span>
+                            </div>
+
+                            <form id="aca-form" onsubmit="event.preventDefault(); saveAiCacheArchiveSettings();">
+
+                                <!-- Master switch -->
+                                <div class="aca-toggle-row">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="aca-enabled" onchange="onAiCacheArchiveFormChange()">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <div class="mode-info">
+                                        <span id="aca-enabled-label">Automatic archiving is OFF</span>
+                                        <p>When on, the archive runs by itself at the time below</p>
+                                    </div>
+                                </div>
+
+                                <div id="aca-fields">
+                                    <div class="aca-grid">
+                                        <div class="form-group">
+                                            <label for="aca-frequency">How often</label>
+                                            <select id="aca-frequency" onchange="onAiCacheArchiveFormChange()">
+                                                <option value="daily">Daily</option>
+                                                <option value="weekly">Weekly</option>
+                                                <option value="monthly">Monthly</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group" id="aca-weekday-group">
+                                            <label for="aca-day-of-week">Day of the week</label>
+                                            <select id="aca-day-of-week" onchange="onAiCacheArchiveFormChange()">
+                                                <option value="0">Sunday</option>
+                                                <option value="1">Monday</option>
+                                                <option value="2">Tuesday</option>
+                                                <option value="3">Wednesday</option>
+                                                <option value="4">Thursday</option>
+                                                <option value="5">Friday</option>
+                                                <option value="6">Saturday</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group" id="aca-monthday-group">
+                                            <label for="aca-day-of-month">Day of the month</label>
+                                            <select id="aca-day-of-month" onchange="onAiCacheArchiveFormChange()">
+                                                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                                                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                                                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                                                <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                                                <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                                                <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                                                <option value="19">19</option><option value="20">20</option><option value="21">21</option>
+                                                <option value="22">22</option><option value="23">23</option><option value="24">24</option>
+                                                <option value="25">25</option><option value="26">26</option><option value="27">27</option>
+                                                <option value="28">28</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="aca-time">Time</label>
+                                            <input type="time" id="aca-time" value="02:00" oninput="onAiCacheArchiveFormChange()">
+                                            <p class="aca-hint">Uses the server's clock. A quiet hour is best.</p>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="aca-unused-days">Archive entries unused for (days)</label>
+                                            <input type="number" id="aca-unused-days" min="1" max="365" value="30" oninput="onAiCacheArchiveFormChange()">
+                                            <p class="aca-hint">Entries used more recently stay in the live cache.</p>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="aca-keep">Archive files to keep</label>
+                                            <input type="number" id="aca-keep" min="1" max="104" value="12" oninput="onAiCacheArchiveFormChange()">
+                                            <p class="aca-hint">Older archive files are deleted automatically.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Plain-English summary, filled in by JS -->
+                                <div class="aca-summary" id="aca-summary">Loading schedule...</div>
+
+                                <div class="aca-actions">
+                                    <button type="button" class="btn-secondary" onclick="loadAiCacheArchive()">Reset</button>
+                                    <button type="submit" class="btn-primary" id="aca-save-btn">Save Schedule</button>
+                                </div>
+                                <p class="mode-hint" id="aca-last-saved"></p>
+                            </form>
+
+                            <!-- Next / last run + Run now -->
+                            <div class="aca-run-box">
+                                <div class="aca-run-info">
+                                    <div><span class="aca-label">Next run</span><strong id="aca-next-run">-</strong></div>
+                                    <div><span class="aca-label">Last run</span><strong id="aca-last-run">-</strong></div>
+                                </div>
+                                <button type="button" class="btn-secondary" id="aca-run-btn" onclick="runAiCacheArchiveNow()">Run now</button>
+                            </div>
+
+                            <!-- History -->
+                            <h4 class="aca-subtitle">Run history</h4>
+                            <div class="aca-table-wrap">
+                                <table class="aca-table">
+                                    <thead>
+                                        <tr>
+                                            <th>When</th>
+                                            <th>Started by</th>
+                                            <th>Result</th>
+                                            <th>Archived</th>
+                                            <th>Removed</th>
+                                            <th>Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="aca-history-body">
+                                        <tr><td colspan="6" class="aca-empty">Loading history...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Archive files -->
+                            <h4 class="aca-subtitle">Archive files</h4>
+                            <p class="aca-dir" id="aca-archive-dir"></p>
+                            <div class="aca-table-wrap">
+                                <table class="aca-table">
+                                    <thead>
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Saved</th>
+                                            <th>Size</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="aca-files-body">
+                                        <tr><td colspan="4" class="aca-empty">Loading files...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
                     <!--
