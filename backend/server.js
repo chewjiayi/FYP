@@ -141,6 +141,8 @@ const hibernationRoutes = require('./hibernationRoutes');   // Hibernation polic
 const hibernationEvaluator = require('./hibernationEvaluator');   // hibernation policy checker (by Zhi Ruo)
 const auth = require('./auth');
 const parametersConfigStore = require('./parametersConfigStore');
+const aiCacheArchiveRoutes = require('./aiCacheArchiveRoutes');   // AI cache archiving
+const aiCacheArchiveScheduler = require('./aiCacheArchiveScheduler');   // runs the archive on schedule
 
 
 function isMobileUserAgent(userAgent) {
@@ -702,6 +704,10 @@ function printServerInfo(isHttps) {
 
     // Start the hibernation policy checker (Dry Run is safe, see hibernationEvaluator.js)
     hibernationEvaluator.start();
+
+    // Start the AI cache archive scheduler (does nothing until a schedule is turned on)
+    aiCacheArchiveScheduler.start();
+
 }
 
 // Try to enable HTTPS if selfsigned package is available
