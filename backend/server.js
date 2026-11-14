@@ -143,7 +143,8 @@ const auth = require('./auth');
 const parametersConfigStore = require('./parametersConfigStore');
 const aiCacheArchiveRoutes = require('./aiCacheArchiveRoutes');   // AI cache archiving
 const aiCacheArchiveScheduler = require('./aiCacheArchiveScheduler');   // runs the archive on schedule
-
+const hardwareMonitorRoutes = require('./hardwareMonitorRoutes');   // Hardware monitoring API
+const hardwareMonitor = require('./hardwareMonitor');               // background hardware sampler
 
 function isMobileUserAgent(userAgent) {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent || '');
@@ -426,6 +427,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin/system', systemRoutes);
 app.use('/api/admin/hibernation', hibernationRoutes);  
 app.use('/api/admin/visitor-archive', visitorArchiveRoutes); 
+app.use('/api/admin/hardware', hardwareMonitorRoutes);  
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);
@@ -707,6 +709,9 @@ function printServerInfo(isHttps) {
 
     // Start the AI cache archive scheduler (does nothing until a schedule is turned on)
     aiCacheArchiveScheduler.start();
+
+    // Start recording hardware usage history (for the System Status graphs)
+    hardwareMonitor.start();
 
 }
 
