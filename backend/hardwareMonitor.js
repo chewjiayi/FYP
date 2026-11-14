@@ -337,6 +337,11 @@ function allBucketPoints() {
     return list;
 }
 
+// All 5-minute points in a time window, without reducing them (used for forecasting)
+function getBucketPoints(from, to = Date.now()) {
+    return allBucketPoints().filter(p => p.t + BUCKET_MS > from && p.t <= to);
+}
+
 function getHistory(range, now = Date.now()) {
     const span = RANGES[range];
     if (!span) throw new MonitorError(`range must be one of: ${Object.keys(RANGES).join(', ')}`);
@@ -388,7 +393,7 @@ function _reset() {
 
 module.exports = {
     MonitorError, INTERVAL_OPTIONS, RANGES, BUCKET_MS, DEFAULT_SETTINGS,
-    start, stop, tick, ingestSample, collectSample, getHistory, getStatus, getCurrent,
+    start, stop, tick, ingestSample, collectSample, getHistory, getBucketPoints, getStatus, getCurrent,
     readSettings, validateSettings, updateSettings, loadHistory, downsample,
     _reset, _state: () => ({ raw, buckets, open, settings })
 };

@@ -3,6 +3,7 @@
 // Mounted in server.js at: /api/admin/hardware
 //   GET /current                      -> latest sample + monitor status
 //   GET /history?range=15m|1h|6h|24h|7d|30d  -> points for the graphs
+//   GET /forecast?lookbackDays=7&threshold=90 -> storage full date + CPU/memory/GPU trends
 //   GET /settings                     -> sampling interval, retention, on/off
 //   PUT /settings                     -> change them (admin)
 // BY ZHI RUO
@@ -11,6 +12,7 @@ const express = require('express');
 const auth = require('./auth');
 const db = require('./db');
 const monitor = require('./hardwareMonitor');
+const forecast = require('./hardwareForecast');
 
 const router = express.Router();
 
@@ -23,7 +25,7 @@ function who(req) {
 }
 
 function sendError(res, err) {
-    if (err instanceof monitor.MonitorError) {
+    if (err instanceof monitor.MonitorError || err instanceof forecast.ForecastError) {
         return res.status(err.status).json({ success: false, error: err.message });
     }
     console.error('Hardware monitor error:', err);
@@ -39,6 +41,18 @@ router.get('/current', (req, res) => {
 router.get('/history', (req, res) => {
     try {
         res.json({ success: true, ...monitor.getHistory(req.query.range || '1h'), status: monitor.getStatus() });
+    } catch (err) { sendError(res, err); }
+});
+
+router.get('/forecast', (req, res) => {
+    try {
+        res.json({
+            success: true,
+            ...forecast.getForecast({
+                lookbackDays: req.query.lookbackDays === undefined ? 7 : req.query.lookbackDays,
+                thresholdPercent: req.query.threshold === undefined ? 90 : req.query.threshold
+            })
+        });
     } catch (err) { sendError(res, err); }
 });
 
