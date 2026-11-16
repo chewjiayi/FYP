@@ -8093,3 +8093,225 @@ input:checked + .slider:before {
 .aca-badge-success { background: #dcfce7; color: #166534; }
 .aca-badge-nothing { background: #e2e8f0; color: #475569; }
 .aca-badge-failed  { background: #fee2e2; color: #991b1b; }
+
+
+/* ==================== HARDWARE MONITORING (BY ZHI RUO) ==================== */
+
+/* Toolbar: time range buttons + refresh + settings */
+.hm-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    margin-bottom: 8px;
+}
+
+.hm-range {
+    display: inline-flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--theme-border-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.hm-range-btn {
+    padding: 8px 14px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--theme-border-color);
+    font-size: 13px;
+    font-weight: 500;
+    color: inherit;
+    cursor: pointer;
+}
+
+.hm-range-btn:last-child {
+    border-right: none;
+}
+
+.hm-range-btn:hover {
+    background: rgba(37, 99, 235, 0.08);
+}
+
+.hm-range-btn.active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.hm-toolbar-right {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.hm-inline-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.hm-inline-field select {
+    width: auto;
+    padding: 6px 10px;
+}
+
+.hm-resolution {
+    margin: 0 0 16px 0;
+    min-height: 18px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Settings panel */
+.hm-settings {
+    margin-bottom: 24px;
+    padding: 18px 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #1e293b;
+}
+
+.hm-section-title {
+    margin: 0 0 12px 0;
+    font-size: 15px;
+}
+
+.hm-settings .hm-section-title:not(:first-child) {
+    margin-top: 22px;
+}
+
+.hm-hint {
+    margin-left: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #64748b;
+}
+
+.hm-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px 24px;
+}
+
+.hm-settings-grid .form-group {
+    margin-bottom: 0;
+}
+
+.hm-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 40px;
+    font-size: 14px;
+}
+
+.hm-settings-note {
+    margin: 12px 0 0 0;
+    min-height: 18px;
+    font-size: 13px;
+    color: #475569;
+}
+
+.hm-settings-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+/* Forecast cards */
+.hm-forecast {
+    margin-bottom: 24px;
+}
+
+.hm-fc-message {
+    margin: 0 0 12px 0;
+    padding: 10px 14px;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1e293b;
+}
+
+.hm-forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+}
+
+.hm-fc-card {
+    padding: 14px 16px;
+    background: var(--theme-bg-color);
+    border: 1px solid var(--theme-border-color);
+    border-left: 4px solid #94a3b8;
+    border-radius: 12px;
+}
+
+.hm-fc-card.hm-sev-ok       { border-left-color: #16a34a; }
+.hm-fc-card.hm-sev-warning  { border-left-color: #f59e0b; }
+.hm-fc-card.hm-sev-critical { border-left-color: #dc2626; }
+
+.hm-fc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.hm-fc-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.hm-fc-value {
+    margin: 6px 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.hm-fc-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #475569;
+}
+
+.hm-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.hm-badge-ok       { background: #dcfce7; color: #166534; }
+.hm-badge-warning  { background: #fef3c7; color: #92400e; }
+.hm-badge-critical { background: #fee2e2; color: #991b1b; }
+.hm-badge-low      { background: #e2e8f0; color: #475569; }
+
+/* Graphs: two per row on wide screens, taller than before */
+.hm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 1.5rem;
+}
+
+.hm-chart-wrap {
+    height: 240px;
+}
+
+@media (max-width: 520px) {
+    .hm-grid {
+        grid-template-columns: 1fr;
+    }
+}

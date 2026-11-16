@@ -3505,13 +3505,122 @@
                         </div>
                     </div>
 
-                    <!-- Hardware Usage -->
-                    <div class="status-card">
+                                        <!-- Hardware Monitoring (BY ZHI RUO) -->
+                    <div class="status-card" id="hardware-monitoring-card">
                         <div class="status-header">
-                            <h3>Hardware Usage</h3>
-                            <span class="status-item-label">Live · updates every 5s</span>
+                            <h3>Hardware Monitoring</h3>
+                            <span id="hm-status-badge" class="status-badge status-checking">Checking...</span>
                         </div>
-                        <div class="hw-grid">
+
+                        <!-- Toolbar: time range, refresh, settings -->
+                        <div class="hm-toolbar">
+                            <div class="hm-range" role="group" aria-label="Time range">
+                                <button type="button" class="hm-range-btn" data-range="15m" onclick="setHardwareRange('15m')">15 min</button>
+                                <button type="button" class="hm-range-btn active" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
+                                <button type="button" class="hm-range-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
+                                <button type="button" class="hm-range-btn" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
+                                <button type="button" class="hm-range-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
+                                <button type="button" class="hm-range-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
+                            </div>
+                            <div class="hm-toolbar-right">
+                                <label class="hm-inline-field" for="hm-refresh-select">Refresh
+                                    <select id="hm-refresh-select" onchange="onHardwareRefreshChange()">
+                                        <option value="0">Off</option>
+                                        <option value="10">10 sec</option>
+                                        <option value="30" selected>30 sec</option>
+                                        <option value="60">1 min</option>
+                                        <option value="300">5 min</option>
+                                    </select>
+                                </label>
+                                <button type="button" class="btn-secondary" id="hm-settings-toggle" onclick="toggleHardwareSettings()">⚙ Settings</button>
+                            </div>
+                        </div>
+                        <p class="hm-resolution" id="hm-resolution"></p>
+
+                        <!-- Settings panel (hidden until opened) -->
+                        <div class="hm-settings" id="hm-settings-panel" style="display: none;">
+                            <h4 class="hm-section-title">Recording <span class="hm-hint">saved on the server</span></h4>
+                            <form id="hm-settings-form" onsubmit="event.preventDefault(); saveHardwareSettings();">
+                                <div class="hm-settings-grid">
+                                    <div class="form-group">
+                                        <label>Record hardware history</label>
+                                        <div class="hm-toggle-row">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="hm-enabled" onchange="onHardwareSettingsChange()">
+                                                <span class="slider"></span>
+                                            </label>
+                                            <span id="hm-enabled-label">Recording is ON</span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="hm-sample-interval">Take a reading every</label>
+                                        <select id="hm-sample-interval" onchange="onHardwareSettingsChange()">
+                                            <option value="10">10 seconds</option>
+                                            <option value="30">30 seconds</option>
+                                            <option value="60">1 minute</option>
+                                            <option value="300">5 minutes</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="hm-retention-days">Keep history for (days)</label>
+                                        <input type="number" id="hm-retention-days" min="1" max="90" value="30" oninput="onHardwareSettingsChange()">
+                                    </div>
+                                </div>
+                                <p class="hm-settings-note" id="hm-settings-note"></p>
+                                <div class="hm-settings-actions">
+                                    <button type="button" class="btn-secondary" onclick="loadHardwareSettings()">Reset</button>
+                                    <button type="submit" class="btn-primary" id="hm-save-btn">Save Recording Settings</button>
+                                </div>
+                            </form>
+
+                            <h4 class="hm-section-title">Forecast <span class="hm-hint">applies instantly, remembered in this browser</span></h4>
+                            <div class="hm-settings-grid">
+                                <div class="form-group">
+                                    <label for="hm-forecast-lookback">Base the forecast on the last</label>
+                                    <select id="hm-forecast-lookback" onchange="onHardwareForecastOptionsChange()">
+                                        <option value="3">3 days</option>
+                                        <option value="7" selected>7 days</option>
+                                        <option value="14">14 days</option>
+                                        <option value="30">30 days</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hm-forecast-threshold">Warn when usage could reach (%)</label>
+                                    <input type="number" id="hm-forecast-threshold" min="50" max="99" value="90" onchange="onHardwareForecastOptionsChange()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Forecast -->
+                        <div class="hm-forecast">
+                            <h4 class="hm-section-title">Forecast <span class="hm-hint" id="hm-fc-basis"></span></h4>
+                            <p class="hm-fc-message" id="hm-fc-message" style="display: none;"></p>
+                            <div class="hm-forecast-grid" id="hm-forecast-grid">
+                                <div class="hm-fc-card" id="hm-fc-storage">
+                                    <div class="hm-fc-head"><span class="hm-fc-title">Storage</span><span class="hm-badge" id="hm-fc-storage-badge">-</span></div>
+                                    <div class="hm-fc-value" id="hm-fc-storage-value">-</div>
+                                    <p class="hm-fc-text" id="hm-fc-storage-text">Loading forecast...</p>
+                                </div>
+                                <div class="hm-fc-card" id="hm-fc-cpu">
+                                    <div class="hm-fc-head"><span class="hm-fc-title">CPU</span><span class="hm-badge" id="hm-fc-cpu-badge">-</span></div>
+                                    <div class="hm-fc-value" id="hm-fc-cpu-value">-</div>
+                                    <p class="hm-fc-text" id="hm-fc-cpu-text">Loading forecast...</p>
+                                </div>
+                                <div class="hm-fc-card" id="hm-fc-memory">
+                                    <div class="hm-fc-head"><span class="hm-fc-title">Memory</span><span class="hm-badge" id="hm-fc-memory-badge">-</span></div>
+                                    <div class="hm-fc-value" id="hm-fc-memory-value">-</div>
+                                    <p class="hm-fc-text" id="hm-fc-memory-text">Loading forecast...</p>
+                                </div>
+                                <div class="hm-fc-card" id="hm-fc-gpu">
+                                    <div class="hm-fc-head"><span class="hm-fc-title">GPU</span><span class="hm-badge" id="hm-fc-gpu-badge">-</span></div>
+                                    <div class="hm-fc-value" id="hm-fc-gpu-value">-</div>
+                                    <p class="hm-fc-text" id="hm-fc-gpu-text">Loading forecast...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Graphs -->
+                        <div class="hm-grid">
 
                             <!-- GPU -->
                             <div class="hw-card">
@@ -3522,7 +3631,7 @@
                                     </div>
                                     <div class="hw-card-value" id="gpu-current">--</div>
                                 </div>
-                                <div class="hw-chart-wrap"><canvas id="gpuUsageChart"></canvas></div>
+                                <div class="hw-chart-wrap hm-chart-wrap"><canvas id="gpuUsageChart"></canvas></div>
                             </div>
 
                             <!-- CPU -->
@@ -3534,10 +3643,22 @@
                                     </div>
                                     <div class="hw-card-value" id="cpu-current">--</div>
                                 </div>
-                                <div class="hw-chart-wrap"><canvas id="cpuUsageChart"></canvas></div>
+                                <div class="hw-chart-wrap hm-chart-wrap"><canvas id="cpuUsageChart"></canvas></div>
                             </div>
 
-                                                        <!-- Storage -->
+                            <!-- Memory -->
+                            <div class="hw-card">
+                                <div class="hw-card-header">
+                                    <div>
+                                        <div class="hw-card-title">Memory Usage</div>
+                                        <div class="hw-card-sub" id="memory-subtitle">System memory</div>
+                                    </div>
+                                    <div class="hw-card-value" id="memory-current">--</div>
+                                </div>
+                                <div class="hw-chart-wrap hm-chart-wrap"><canvas id="memoryUsageChart"></canvas></div>
+                            </div>
+
+                            <!-- Storage -->
                             <div class="hw-card">
                                 <div class="hw-card-header">
                                     <div>
@@ -3546,9 +3667,8 @@
                                     </div>
                                     <div class="hw-card-value" id="storage-current">--</div>
                                 </div>
-                                <div class="hw-chart-wrap"><canvas id="storageUsageChart"></canvas></div>
+                                <div class="hw-chart-wrap hm-chart-wrap"><canvas id="storageUsageChart"></canvas></div>
                             </div>
-
                         </div>
                     </div>
 
