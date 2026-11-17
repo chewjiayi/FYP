@@ -16046,155 +16046,31 @@ setInterval(watchKioskService, 3000);
 watchKioskService();
 
 // ==================== SYSTEM STATUS PAGE (BY ZHI RUO) ====================
-// Live health + hardware graphs for the System Status page.
-// Data comes from: /api/admin/system/metrics and /api/admin/system/ai-health
+// Services, AI models, and the Hardware Monitoring card (history graphs + forecast).
+// Talks to: /api/admin/system/ai-health and /api/admin/hardware/...
 
-const SYSTEM_STATUS_REFRESH_MS = 5000;     // how often the graphs update
-const SYSTEM_STATUS_SERVICES_EVERY = 3;    // services/AI check runs every 3rd tick (~15s)
-const SYSTEM_STATUS_MAX_POINTS = 30;       // points kept on the line graphs (~2.5 min)
+const HM_API = '/api/admin/hardware';
+const HM_RANGE_NAMES = { '15m': '15 minutes', '1h': '1 hour', '6h': '6 hours', '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
+const HM_COLORS = { gpu: '#7c3aed', cpu: '#2563eb', memory: '#0891b2', storage: '#0d9488' };
+const HM_SERVICES_EVERY_MS = 15000;      // Kiosk / Database / AI models are re-checked at most this often
+const HM_FORECAST_EVERY_MS = 5 * 60000;  // the forecast changes slowly, so it is refreshed every 5 minutes
 
-let systemStatusTimer = null;
-let systemStatusTick = 0;
-let gpuUsageChart = null;
-let cpuUsageChart = null;
-let storageUsageChart = null;
-const systemStatusHistory = { labels: [], cpu: [], gpu: [] };
+let hmRange = '1h';
+let hmCharts = { gpu: null, cpu: null, memory: null, storage: null };
+let hmTimer = null;
+let hmRefreshSeconds = 30;
+let hmForecastOptions = { lookbackDays: 7, threshold: 90 };
+let hmLastHistory = null;
+let hmLastForecast = null;
+let hmLastForecastAt = 0;
+let hmLastServicesAt = 0;
+let hmRequestId = 0;
+let hmSettingsLoaded = false;
 
+// ---------- Small helper ----------
 function sysStatusSetText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
-}
-
-// ---------- Charts ----------
-function sysStatusCreateLineChart(canvasId, label, color) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return null;
-    return new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label,
-                data: [],
-                borderColor: color,
-                backgroundColor: color + '22',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 0,
-                borderWidth: 2,
-                spanGaps: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
-                x: { ticks: { maxTicksLimit: 5 } }
-            }
-        }
-    });
-}
-
-function initSystemStatusCharts() {
-    if (!gpuUsageChart) gpuUsageChart = sysStatusCreateLineChart('gpuUsageChart', 'GPU usage', '#7c3aed');
-    if (!cpuUsageChart) cpuUsageChart = sysStatusCreateLineChart('cpuUsageChart', 'CPU usage', '#2563eb');
-
-    if (!storageUsageChart) {
-        const canvas = document.getElementById('storageUsageChart');
-        if (canvas) {
-            storageUsageChart = new Chart(canvas.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Used', 'Free'],
-                    datasets: [{ data: [0, 1], backgroundColor: ['#0d9488', '#e5e7eb'], borderWidth: 0 }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: { position: 'bottom' },
-                        tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed} GB` } }
-                    }
-                }
-            });
-        }
-    }
-}
-
-function sysStatusRecordHistory(cpuUsage, gpuUsage) {
-    const h = systemStatusHistory;
-    h.labels.push(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    h.cpu.push(cpuUsage);
-    h.gpu.push(gpuUsage);   // null leaves a gap in the graph (GPU not reporting)
-
-    while (h.labels.length > SYSTEM_STATUS_MAX_POINTS) {
-        h.labels.shift();
-        h.cpu.shift();
-        h.gpu.shift();
-    }
-
-    if (cpuUsageChart) {
-        cpuUsageChart.data.labels = h.labels.slice();
-        cpuUsageChart.data.datasets[0].data = h.cpu.slice();
-        cpuUsageChart.update();
-    }
-    if (gpuUsageChart) {
-        gpuUsageChart.data.labels = h.labels.slice();
-        gpuUsageChart.data.datasets[0].data = h.gpu.slice();
-        gpuUsageChart.update();
-    }
-}
-
-// ---------- Hardware metrics (CPU / GPU / storage) ----------
-async function loadHardwareMetrics() {
-    try {
-        const response = await fetch('/api/admin/system/metrics');
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || 'Metrics unavailable');
-
-        // Prefer the GPU that actually reports utilization (e.g. NVIDIA over integrated)
-        const gpus = data.gpus || [];
-        const gpu = gpus.find(g => g.utilization !== null) || gpus[0] || null;
-        const gpuUsage = gpu && gpu.utilization !== null ? gpu.utilization : null;
-
-        sysStatusRecordHistory(data.cpu.usage, gpuUsage);
-
-        sysStatusSetText('cpu-current', data.cpu.usage + '%');
-        sysStatusSetText('cpu-subtitle', `Application processing · ${data.cpu.cores} cores`);
-
-        sysStatusSetText('gpu-current', gpuUsage !== null ? gpuUsage + '%' : 'N/A');
-        if (!gpu) {
-            sysStatusSetText('gpu-subtitle', 'No GPU detected');
-        } else if (gpuUsage === null) {
-            sysStatusSetText('gpu-subtitle', `${gpu.name} · usage not reported by driver`);
-        } else {
-            sysStatusSetText('gpu-subtitle', `AI model processing · ${gpu.name}`);
-        }
-
-        if (data.storage) {
-            sysStatusSetText('storage-current', data.storage.usage + '%');
-            sysStatusSetText('storage-subtitle',
-                `Drive ${data.storage.mount} · ${data.storage.usedGB} of ${data.storage.totalGB} GB used`);
-            if (storageUsageChart) {
-                const free = Math.max(data.storage.totalGB - data.storage.usedGB, 0);
-                storageUsageChart.data.datasets[0].data = [data.storage.usedGB, Math.round(free * 10) / 10];
-                storageUsageChart.update();
-            }
-        } else {
-            sysStatusSetText('storage-current', 'N/A');
-            sysStatusSetText('storage-subtitle', 'Storage information unavailable');
-        }
-    } catch (error) {
-        console.error('❌ Error loading hardware metrics:', error);
-        sysStatusSetText('cpu-current', 'Error');
-        sysStatusSetText('gpu-current', 'Error');
-        sysStatusSetText('storage-current', 'Error');
-    }
 }
 
 // ---------- AI / LLM health ----------
@@ -16253,16 +16129,441 @@ async function loadAiHealth() {
     }
 }
 
+// ---------- Talking to the server ----------
+async function hmRequest(path, options = {}) {
+    const response = await fetch(HM_API + path, { credentials: 'same-origin', ...options });
+    let data = null;
+    try { data = await response.json(); } catch (e) { /* not JSON */ }
+    if (!response.ok || !data || !data.success) {
+        throw new Error((data && data.error) || 'Request failed (' + response.status + ')');
+    }
+    return data;
+}
+
+function hmEl(id) {
+    return document.getElementById(id);
+}
+
+// ---------- Remembered choices (this browser only) ----------
+function hmLoadPrefs() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('hmPrefs') || '{}');
+        if ([0, 10, 30, 60, 300].includes(saved.refreshSeconds)) hmRefreshSeconds = saved.refreshSeconds;
+        if ([3, 7, 14, 30].includes(saved.lookbackDays)) hmForecastOptions.lookbackDays = saved.lookbackDays;
+        if (Number.isInteger(saved.threshold) && saved.threshold >= 50 && saved.threshold <= 99) hmForecastOptions.threshold = saved.threshold;
+        if (HM_RANGE_NAMES[saved.range]) hmRange = saved.range;
+    } catch (e) { /* storage unavailable, keep defaults */ }
+
+    hmEl('hm-refresh-select').value = String(hmRefreshSeconds);
+    hmEl('hm-forecast-lookback').value = String(hmForecastOptions.lookbackDays);
+    hmEl('hm-forecast-threshold').value = hmForecastOptions.threshold;
+    document.querySelectorAll('.hm-range-btn').forEach(b => b.classList.toggle('active', b.dataset.range === hmRange));
+}
+
+function hmSavePrefs() {
+    try {
+        localStorage.setItem('hmPrefs', JSON.stringify({
+            refreshSeconds: hmRefreshSeconds,
+            lookbackDays: hmForecastOptions.lookbackDays,
+            threshold: hmForecastOptions.threshold,
+            range: hmRange
+        }));
+    } catch (e) { /* storage unavailable */ }
+}
+
+// ---------- Charts ----------
+function hmFormatTick(ms) {
+    const d = new Date(ms);
+    return (hmRange === '7d' || hmRange === '30d')
+        ? d.toLocaleDateString([], { day: 'numeric', month: 'short' })
+        : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function hmCreateChart(canvasId, color, unit, fixedMax) {
+    const canvas = hmEl(canvasId);
+    if (!canvas) return null;
+    return new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            datasets: [
+                { label: 'Usage', data: [], borderColor: color, backgroundColor: color + '22', fill: true, tension: 0.25, pointRadius: 0, borderWidth: 2, spanGaps: false },
+                { label: 'Forecast', data: [], borderColor: '#f59e0b', borderDash: [6, 4], fill: false, pointRadius: 0, borderWidth: 2 },
+                { label: 'Limit', data: [], borderColor: '#ef4444', borderDash: [2, 4], fill: false, pointRadius: 0, borderWidth: 1 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            parsing: false,
+            interaction: { mode: 'nearest', axis: 'x', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    filter: item => item.dataset.label !== 'Limit',
+                    callbacks: {
+                        title: items => new Date(items[0].parsed.x).toLocaleString(),
+                        label: item => `${item.dataset.label}: ${item.parsed.y}${unit}`
+                    }
+                }
+            },
+            scales: {
+                x: { type: 'linear', ticks: { maxTicksLimit: 6, callback: v => hmFormatTick(v) } },
+                y: { min: 0, max: fixedMax, ticks: { callback: v => v + unit } }
+            }
+        }
+    });
+}
+
+function hmInitCharts() {
+    if (hmCharts.gpu) return;     // already built
+    hmCharts.gpu = hmCreateChart('gpuUsageChart', HM_COLORS.gpu, '%', 100);
+    hmCharts.cpu = hmCreateChart('cpuUsageChart', HM_COLORS.cpu, '%', 100);
+    hmCharts.memory = hmCreateChart('memoryUsageChart', HM_COLORS.memory, '%', 100);
+    hmCharts.storage = hmCreateChart('storageUsageChart', HM_COLORS.storage, ' GB', undefined);
+}
+
+// A straight forecast line from "now", cut off at endT (the line is straight, so we can just interpolate)
+function hmProjectionLine(projection, endT) {
+    if (!projection || projection.length < 2) return [];
+    const [p0, p1] = projection;
+    const t = Math.min(p1.t, endT);
+    if (t <= p0.t) return [];
+    const v = p0.v + (p1.v - p0.v) * ((t - p0.t) / (p1.t - p0.t));
+    return [{ x: p0.t, y: p0.v }, { x: t, y: Math.round(v * 10) / 10 }];
+}
+
+// Draw everything we have (history + forecast) onto the four graphs
+function hmRedrawCharts() {
+    const h = hmLastHistory;
+    if (!h || !hmCharts.cpu) return;
+
+    const f = hmLastForecast && hmLastForecast.status === 'ok' ? hmLastForecast : null;
+    const showProjection = !!f && (hmRange === '7d' || hmRange === '30d');   // short ranges have no room for a forecast
+    const extension = showProjection ? Math.round((h.to - h.from) * 0.4) : 0;
+    const xMin = h.from;
+    const xMax = h.to + extension;
+
+    const series = [
+        { chart: 'gpu', key: 'gpu', fc: f && f.gpu, limit: hmForecastOptions.threshold },
+        { chart: 'cpu', key: 'cpu', fc: f && f.cpu, limit: hmForecastOptions.threshold },
+        { chart: 'memory', key: 'mem', fc: f && f.memory, limit: hmForecastOptions.threshold },
+        { chart: 'storage', key: 'st', fc: f && f.storage, limit: null }
+    ];
+
+    series.forEach(s => {
+        const chart = hmCharts[s.chart];
+        if (!chart) return;
+
+        chart.data.datasets[0].data = h.points.map(p => ({ x: p.t, y: Number.isFinite(p[s.key]) ? p[s.key] : null }));
+        chart.data.datasets[1].data = showProjection && s.fc && s.fc.available !== false ? hmProjectionLine(s.fc.projection, h.to + extension) : [];
+
+        let limit = s.limit;
+        if (s.chart === 'storage') {
+            const last = [...h.points].reverse().find(p => Number.isFinite(p.stTotal));
+            limit = last ? last.stTotal : null;
+            chart.options.scales.y.max = limit ? Math.round(limit * 1.05) : undefined;
+        }
+        chart.data.datasets[2].data = limit ? [{ x: xMin, y: limit }, { x: xMax, y: limit }] : [];
+
+        chart.options.scales.x.min = xMin;
+        chart.options.scales.x.max = xMax;
+        chart.update();
+    });
+}
+
+// ---------- History + current values ----------
+function hmPeak(points, key) {
+    const maxKey = { cpu: 'cpuMax', mem: 'memMax', gpu: 'gpuMax' }[key];
+    const vals = points.map(p => (maxKey && Number.isFinite(p[maxKey]) ? p[maxKey] : p[key])).filter(Number.isFinite);
+    return vals.length ? Math.max(...vals) : null;
+}
+
+function hmResolutionLabel(resolution) {
+    if (resolution === '5min') return '5 minutes';
+    const n = parseInt(resolution, 10);
+    return Number.isFinite(n) ? `${n} seconds` : resolution;
+}
+
+function hmUpdateStatusBadge(status) {
+    const badge = hmEl('hm-status-badge');
+    if (!badge || !status) return;
+    if (!status.enabled) { badge.className = 'status-badge status-offline'; badge.textContent = 'Paused'; }
+    else if (status.lastError) { badge.className = 'status-badge status-error'; badge.textContent = 'Reading error'; }
+    else if (status.running) { badge.className = 'status-badge status-online'; badge.textContent = 'Recording'; }
+    else { badge.className = 'status-badge status-checking'; badge.textContent = 'Starting...'; }
+}
+
+function hmRenderCurrent(current, history) {
+    const s = current.sample;
+    const status = current.status;
+    const pts = history.points;
+
+    const pct = v => (Number.isFinite(v) ? v + '%' : 'N/A');
+    const peakText = key => {
+        const p = hmPeak(pts, key);
+        return p === null ? '' : ` · peak ${Math.round(p)}% in this range`;
+    };
+
+    sysStatusSetText('cpu-current', s ? pct(s.cpu) : '--');
+    sysStatusSetText('cpu-subtitle', 'Application processing' + peakText('cpu'));
+
+    sysStatusSetText('memory-current', s ? pct(s.mem) : '--');
+    sysStatusSetText('memory-subtitle', 'System memory' + peakText('mem'));
+
+    sysStatusSetText('gpu-current', s ? pct(s.gpu) : '--');
+    if (!status.gpuName && !status.gpuAvailable) sysStatusSetText('gpu-subtitle', 'No GPU detected');
+    else if (!status.gpuAvailable) sysStatusSetText('gpu-subtitle', `${status.gpuName} · usage not reported by driver`);
+    else sysStatusSetText('gpu-subtitle', `AI model processing · ${status.gpuName}` + peakText('gpu'));
+
+    if (s && Number.isFinite(s.st) && Number.isFinite(s.stTotal) && s.stTotal > 0) {
+        sysStatusSetText('storage-current', Math.round((s.st / s.stTotal) * 1000) / 10 + '%');
+        sysStatusSetText('storage-subtitle', `${s.st} of ${s.stTotal} GB used`);
+    } else {
+        sysStatusSetText('storage-current', 'N/A');
+        sysStatusSetText('storage-subtitle', 'Storage information unavailable');
+    }
+}
+
+async function loadHardwareHistory() {
+    const requestId = ++hmRequestId;
+    try {
+        const [history, current] = await Promise.all([
+            hmRequest(`/history?range=${encodeURIComponent(hmRange)}`),
+            hmRequest('/current')
+        ]);
+        if (requestId !== hmRequestId) return;      // a newer request (e.g. another range click) took over
+
+        hmLastHistory = history;
+        hmUpdateStatusBadge(history.status);
+        hmRenderCurrent(current, history);
+
+        const note = hmEl('hm-resolution');
+        if (history.count === 0) {
+            note.textContent = history.status.enabled
+                ? 'No history recorded for this range yet. Readings appear shortly after the server starts.'
+                : 'Recording is paused, so there is no history to show. Turn it on in Settings.';
+        } else {
+            const since = history.status.historySince ? ` · recorded since ${new Date(history.status.historySince).toLocaleString()}` : '';
+            note.textContent = `Last ${HM_RANGE_NAMES[hmRange]} · one point every ${hmResolutionLabel(history.resolution)}${since}`;
+        }
+        hmRedrawCharts();
+    } catch (error) {
+        if (requestId !== hmRequestId) return;
+        console.error('❌ Error loading hardware history:', error);
+        hmEl('hm-resolution').textContent = 'Could not load hardware history: ' + error.message;
+        const badge = hmEl('hm-status-badge');
+        badge.className = 'status-badge status-error';
+        badge.textContent = 'Unavailable';
+    }
+}
+
+// ---------- Forecast ----------
+function hmSetCard(name, { severity = '', badgeText = '-', badgeClass = '', value = '-', text = '' }) {
+    const card = hmEl('hm-fc-' + name);
+    card.classList.remove('hm-sev-ok', 'hm-sev-warning', 'hm-sev-critical');
+    if (severity) card.classList.add('hm-sev-' + severity);
+
+    const badge = hmEl(`hm-fc-${name}-badge`);
+    badge.className = 'hm-badge' + (badgeClass ? ' ' + badgeClass : '');
+    badge.textContent = badgeText;
+
+    hmEl(`hm-fc-${name}-value`).textContent = value;
+    hmEl(`hm-fc-${name}-text`).textContent = text;
+}
+
+function hmTrendCard(name, m) {
+    if (!m || m.available === false) {
+        hmSetCard(name, { value: 'N/A', text: (m && m.message) || 'Not enough data to forecast yet.' });
+        return;
+    }
+    let severity = 'ok';
+    if (m.daysToThreshold === 0) severity = 'critical';
+    else if (m.daysToThreshold !== null && m.daysToThreshold <= 14) severity = 'warning';
+
+    const badgeText = m.trend === 'rising' ? 'Rising' : m.trend === 'falling' ? 'Falling' : 'Steady';
+    const value = m.trend === 'stable'
+        ? 'Steady'
+        : `${m.changePerDay > 0 ? '+' : ''}${m.changePerDay} pts/day`;
+    hmSetCard(name, {
+        severity,
+        badgeText,
+        badgeClass: 'hm-badge-' + (severity === 'ok' ? (m.confidence === 'low' ? 'low' : 'ok') : severity),
+        value,
+        text: m.headline
+    });
+}
+
+function hmStorageCard(s) {
+    if (!s || s.available === false) {
+        hmSetCard('storage', { value: 'N/A', text: (s && s.message) || 'Storage information is not available.' });
+        return;
+    }
+    let value;
+    if (s.daysUntilFull === 0) value = 'Full';
+    else if (s.daysUntilFull !== null) value = s.daysUntilFull < 1 ? 'Under a day' : `${Math.round(s.daysUntilFull)} days`;
+    else if (s.trend === 'stable') value = 'Steady';
+    else if (s.trend === 'shrinking') value = 'Shrinking';
+    else value = s.usagePercent + '% full';
+
+    const label = { ok: 'OK', warning: 'Warning', critical: 'Critical' }[s.severity] || 'OK';
+    hmSetCard('storage', {
+        severity: s.severity,
+        badgeText: label,
+        badgeClass: 'hm-badge-' + (s.severity === 'ok' && s.confidence === 'low' ? 'low' : s.severity),
+        value,
+        text: s.headline
+    });
+}
+
+function hmRenderForecast(f) {
+    const msg = hmEl('hm-fc-message');
+    if (f.status !== 'ok') {
+        msg.textContent = f.message;
+        msg.style.display = 'block';
+        hmEl('hm-fc-basis').textContent = '';
+        ['storage', 'cpu', 'memory', 'gpu'].forEach(n => hmSetCard(n, { value: '-', text: 'Waiting for more history.' }));
+        return;
+    }
+    msg.style.display = 'none';
+    hmEl('hm-fc-basis').textContent =
+        `based on ${f.basedOn.hours} hours of history, averaged by ${f.basedOn.averagedBy}`;
+    hmStorageCard(f.storage);
+    hmTrendCard('cpu', f.cpu);
+    hmTrendCard('memory', f.memory);
+    hmTrendCard('gpu', f.gpu);
+}
+
+async function loadHardwareForecast() {
+    try {
+        const o = hmForecastOptions;
+        const data = await hmRequest(`/forecast?lookbackDays=${o.lookbackDays}&threshold=${o.threshold}`);
+        hmLastForecast = data;
+        hmLastForecastAt = Date.now();
+        hmRenderForecast(data);
+        hmRedrawCharts();
+    } catch (error) {
+        console.error('❌ Error loading hardware forecast:', error);
+        const msg = hmEl('hm-fc-message');
+        msg.textContent = 'Could not load the forecast: ' + error.message;
+        msg.style.display = 'block';
+    }
+}
+
+// ---------- Toolbar: range, refresh interval, forecast options ----------
+function setHardwareRange(range) {
+    if (!HM_RANGE_NAMES[range]) return;
+    hmRange = range;
+    document.querySelectorAll('.hm-range-btn').forEach(b => b.classList.toggle('active', b.dataset.range === range));
+    hmSavePrefs();
+    loadHardwareHistory();
+}
+
+function onHardwareRefreshChange() {
+    hmRefreshSeconds = parseInt(hmEl('hm-refresh-select').value, 10) || 0;
+    hmSavePrefs();
+    startSystemStatusAutoRefresh();
+}
+
+function onHardwareForecastOptionsChange() {
+    const lookback = parseInt(hmEl('hm-forecast-lookback').value, 10);
+    const threshold = parseInt(hmEl('hm-forecast-threshold').value, 10);
+    if (!Number.isInteger(threshold) || threshold < 50 || threshold > 99) {
+        showNotification('The warning level must be between 50 and 99 percent', 'error');
+        hmEl('hm-forecast-threshold').value = hmForecastOptions.threshold;
+        return;
+    }
+    hmForecastOptions = { lookbackDays: lookback, threshold };
+    hmSavePrefs();
+    loadHardwareForecast();
+}
+
+// ---------- Recording settings (saved on the server) ----------
+function toggleHardwareSettings() {
+    const panel = hmEl('hm-settings-panel');
+    const opening = panel.style.display === 'none';
+    panel.style.display = opening ? 'block' : 'none';
+    if (opening && !hmSettingsLoaded) loadHardwareSettings();
+}
+
+function readHardwareSettingsForm() {
+    return {
+        enabled: hmEl('hm-enabled').checked,
+        sampleIntervalSeconds: parseInt(hmEl('hm-sample-interval').value, 10),
+        retentionDays: parseInt(hmEl('hm-retention-days').value, 10)
+    };
+}
+
+function onHardwareSettingsChange() {
+    const s = readHardwareSettingsForm();
+    hmEl('hm-enabled-label').textContent = s.enabled ? 'Recording is ON' : 'Recording is OFF';
+    if (s.enabled && Number.isFinite(s.sampleIntervalSeconds) && Number.isFinite(s.retentionDays)) {
+        const perDay = Math.round(86400 / s.sampleIntervalSeconds);
+        hmEl('hm-settings-note').textContent =
+            `About ${perDay.toLocaleString()} readings a day. History is kept for ${s.retentionDays} day(s) and shown as 5-minute averages beyond the last 24 hours.`;
+    } else if (!s.enabled) {
+        hmEl('hm-settings-note').textContent = 'Recording is off. No new history is collected, and forecasts will stop updating.';
+    }
+}
+
+async function loadHardwareSettings() {
+    try {
+        const data = await hmRequest('/settings');
+        const s = data.settings;
+        hmEl('hm-enabled').checked = !!s.enabled;
+        hmEl('hm-sample-interval').value = String(s.sampleIntervalSeconds);
+        hmEl('hm-retention-days').value = s.retentionDays;
+        hmSettingsLoaded = true;
+        onHardwareSettingsChange();
+    } catch (error) {
+        console.error('❌ Error loading hardware settings:', error);
+        hmEl('hm-settings-note').textContent = 'Could not load the recording settings: ' + error.message;
+    }
+}
+
+async function saveHardwareSettings() {
+    const s = readHardwareSettingsForm();
+    if (!Number.isInteger(s.retentionDays) || s.retentionDays < 1 || s.retentionDays > 90) {
+        showNotification('Keep history for 1 to 90 days', 'error');
+        return;
+    }
+
+    const btn = hmEl('hm-save-btn');
+    btn.disabled = true;
+    try {
+        await hmRequest('/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(s)
+        });
+        showNotification('Recording settings saved', 'success');
+        await loadHardwareHistory();
+    } catch (error) {
+        console.error('❌ Error saving hardware settings:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 // ---------- Page load / refresh ----------
+async function refreshHardware({ forecast = false } = {}) {
+    const jobs = [loadHardwareHistory()];
+    if (forecast || Date.now() - hmLastForecastAt > HM_FORECAST_EVERY_MS) jobs.push(loadHardwareForecast());
+    await Promise.all(jobs);
+}
+
+// The Refresh button on the page
 async function loadSystemStatusPage() {
     const btn = document.querySelector('#system-status-page .refresh-btn');
     if (btn) btn.classList.add('is-loading');
 
     try {
+        hmLastServicesAt = Date.now();
         await Promise.all([
             updateSystemStatus(),    // Kiosk Server + Database (existing function)
             loadAiHealth(),
-            loadHardwareMetrics()
+            refreshHardware({ forecast: true })
         ]);
         sysStatusSetText('system-status-last-checked', 'Last checked: ' + new Date().toLocaleTimeString());
     } finally {
@@ -16271,28 +16572,31 @@ async function loadSystemStatusPage() {
 }
 
 function initSystemStatusPage() {
-    initSystemStatusCharts();      // page is visible now, so the canvases have a size
+    hmInitCharts();            // the page is visible now, so the canvases have a size
+    hmLoadPrefs();
     loadSystemStatusPage();
     startSystemStatusAutoRefresh();
 }
 
 function startSystemStatusAutoRefresh() {
     stopSystemStatusAutoRefresh();
-    systemStatusTick = 0;
-    systemStatusTimer = setInterval(async () => {
-        systemStatusTick++;
-        await loadHardwareMetrics();
-        if (systemStatusTick % SYSTEM_STATUS_SERVICES_EVERY === 0) {
+    if (hmRefreshSeconds <= 0) return;      // "Off": only the Refresh button updates the page
+
+    hmTimer = setInterval(async () => {
+        await refreshHardware();
+        // Services are cheap but not worth checking more often than every 15 seconds
+        if (Date.now() - hmLastServicesAt >= HM_SERVICES_EVERY_MS) {
+            hmLastServicesAt = Date.now();
             await Promise.all([updateSystemStatus(), loadAiHealth()]);
         }
         sysStatusSetText('system-status-last-checked', 'Last checked: ' + new Date().toLocaleTimeString());
-    }, SYSTEM_STATUS_REFRESH_MS);
+    }, hmRefreshSeconds * 1000);
 }
 
 function stopSystemStatusAutoRefresh() {
-    if (systemStatusTimer) {
-        clearInterval(systemStatusTimer);
-        systemStatusTimer = null;
+    if (hmTimer) {
+        clearInterval(hmTimer);
+        hmTimer = null;
     }
 }
 
