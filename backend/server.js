@@ -428,6 +428,7 @@ app.use('/api/admin/system', systemRoutes);
 app.use('/api/admin/hibernation', hibernationRoutes);  
 app.use('/api/admin/visitor-archive', visitorArchiveRoutes); 
 app.use('/api/admin/hardware', hardwareMonitorRoutes);  
+app.use('/api/admin/ai-cache-archive', aiCacheArchiveRoutes);   // AI cache archiving (before /api/admin)
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);
