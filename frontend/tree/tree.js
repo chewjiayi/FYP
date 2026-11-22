@@ -1634,82 +1634,45 @@ class TreeManager {
             }
         );
 
-        // Create a sliding path with longer left-right distances
+        // Gentle descent path: mostly vertical with a soft one-way lateral drift
+        const totalY = Number.isFinite(fallDistance) && fallDistance > 0 ? fallDistance : 420;
+        const totalX = Number.isFinite(drift) ? drift : 0;
         const pathPoints = [
             { x: 0, y: 0 },
-            { x: 100, y: 100 },   // Long slide to the right
-            { x: -80, y: 200 },    // Long slide to the left
-            { x: 60, y: 300 },     // Slide to the right
-            { x: -40, y: 355 }     // Final slide to the left
+            { x: totalX * 0.15, y: totalY * 0.25 },
+            { x: totalX * 0.35, y: totalY * 0.5 },
+            { x: totalX * 0.65, y: totalY * 0.75 },
+            { x: totalX, y: totalY }
         ];
 
-        // Continuous falling with sliding motion - SLOWER
+        // Continuous falling with a natural accelerating descent - no side-to-side swinging
         timeline.to(leaf, {
             motionPath: {
                 path: pathPoints,
-                curviness: 1.2, // Moderate curviness for smooth sliding
+                curviness: 1.4,
                 autoRotate: false
             },
             scale: 1,
-            duration: 5, // Much slower (was 3.5s)
-            ease: "none"
+            duration: duration * 0.9,
+            ease: "sine.in"
         });
 
-        // Add subtle rotation - gentle alternating clockwise and counter-clockwise
-        // Much smaller angles for fluent, wind-blown movement
+        // Smooth continuous tumble while falling (no back-and-forth rotation wiggle)
+        const totalRotation = Number.isFinite(rotationParams?.total) ? rotationParams.total : 180;
         timeline.to(leaf, {
-            rotation: 30,   // Clockwise (reduced from 120)
+            rotation: totalRotation,
             scale: 1,
-            duration: 1.3,
-            ease: "sine.inOut"
+            duration: duration * 0.9,
+            ease: "none"
         }, 0);
 
-        timeline.to(leaf, {
-            rotation: -35, // Counter-clockwise (reduced from -150)
-            scale: 1,
-            duration: 1.3,
-            ease: "sine.inOut"
-        }, 1.3);
-
-        timeline.to(leaf, {
-            rotation: 25,  // Clockwise (reduced from 100)
-            scale: 1,
-            duration: 1.2,
-            ease: "sine.inOut"
-        }, 2.6);
-
-        timeline.to(leaf, {
-            rotation: -20,  // Counter-clockwise (reduced from -80)
-            scale: 1,
-            duration: 1.2,
-            ease: "sine.inOut"
-        }, 3.8);
-
-        // Ground impact - small bounce
-        timeline.to(leaf, {
-            y: 360,
-            rotation: 5,  // Reduced from 20
-            scale: 1,
-            duration: 0.3,
-            ease: "power2.out"
-        });
-
-        // Final settling - slide and stop
-        timeline.to(leaf, {
-            x: -30,
-            rotation: 0,
-            scale: 1,
-            duration: 0.5,
-            ease: "power1.out"
-        });
-
-        // Final fade out
+        // Final fade out as the leaf nears the ground
         timeline.to(leaf, {
             opacity: 0,
             scale: 1,
-            duration: 0.5,
-            ease: "power2.in"
-        });
+            duration: 0.6,
+            ease: "power1.in"
+        }, duration * 0.9 - 0.3);
 
         return timeline;
     }
