@@ -3159,7 +3159,9 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <!-- Email Pattern is HIDDEN ON PURPOSE (BY ZHI RUO). Do not delete this input: the page still loads and saves it,
+                         so a pattern that was already saved is kept. Deleting it would reset the pattern to the default on the next Save. -->
+                        <div class="form-group" id="rule-emailPattern-group" hidden aria-hidden="true" style="display: none;">
                             <label for="rule-emailPattern">Email Pattern</label>
                             <input type="text" id="rule-emailPattern" placeholder="^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$">
                             <small class="text-muted">JavaScript regular expression used by frontend and backend validation</small>

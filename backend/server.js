@@ -127,6 +127,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const session = require('express-session');
+const realtimeHub = require('./realtimeHub');   // WebSocket (live connection to admin pages)
 const db = require('./db');
 const feedbackRoutes = require('./feedbackRoutes');
 const visitorArchiveRoutes = require('./visitorArchiveRoutes');   // Visitor data archive (by Zhi Ruo)
@@ -392,7 +393,7 @@ app.use((err, req, res, next) => {
 //     }
 // }));
 
-app.use(session({
+const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     resave: true,  
     saveUninitialized: false,
@@ -403,7 +404,8 @@ app.use(session({
         maxAge: 1800000,
         sameSite: 'lax'  
     }
-}));
+});
+app.use(sessionMiddleware);   // shared with the WebSocket so only logged-in admins can connect
 
 // Pulse screen is public so it can be shown without an admin session.
 
@@ -635,6 +637,8 @@ function startServer() {
     } else {
         server = http.createServer(app);
     }
+
+    realtimeHub.attach(server, sessionMiddleware);   // live (WebSocket) connection for admin pages
 
     server.listen(PORT, bindHost, () => {
         printServerInfo(!!sslOptions);

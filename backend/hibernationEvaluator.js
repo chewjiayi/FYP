@@ -9,6 +9,7 @@
 
 const db = require('./db');
 const store = require('./hibernationPolicyStore');
+const realtime = require('./realtimeHub');   // pushes events to connected admin pages (WebSocket)
 
 // ---------- Settings you may need to adjust ----------
 // How we find the latest visitor activity. Must return ONE row with a column called last_activity.
@@ -44,9 +45,12 @@ function dayKey(d) {
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-function addEvent(type, rule, message, enforcement) {
-    events.unshift({ time: new Date().toISOString(), type, rule, message, enforcement });
+function addEvent(type, rule, message, enforcement, extra = {}) {
+    const event = { time: new Date().toISOString(), type, rule, message, enforcement, ...extra };
+    events.unshift(event);
     if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
+    realtime.broadcast('hibernation:event', event);   // live to every connected admin page
+    return event;
 }
 
 // ---------- Visitor activity ----------
@@ -94,6 +98,7 @@ function evaluatePolicy(policy, now, lastActivity) {
             warnings.push({
                 rule: 'scheduled',
                 key: `sched-warn-${dayKey(now)}`,
+                minutesLeft: -diff,
                 reason: `scheduled hibernate in ${-diff} minute(s)`
             });
         }
@@ -112,6 +117,7 @@ function evaluatePolicy(policy, now, lastActivity) {
             warnings.push({
                 rule: 'idle',
                 key: `idle-warn-${lastActivity.getTime()}`,
+                minutesLeft: Math.ceil(remaining),
                 reason: `idle limit reached in ${Math.ceil(remaining)} minute(s)`
             });
         }
@@ -133,7 +139,7 @@ function evaluatePolicy(policy, now, lastActivity) {
     }
 
     if (warnings.length > 0) {
-        return { action: 'warn', rule: warnings[0].rule, key: warnings[0].key, reason: warnings[0].reason };
+        return { action: 'warn', rule: warnings[0].rule, key: warnings[0].key, reason: warnings[0].reason, minutesLeft: warnings[0].minutesLeft };
     }
 
     return { action: 'none', reason: 'nothing due' };
@@ -153,10 +159,9 @@ function performHibernation(policy, result) {
     addEvent('would_hibernate', result.rule, msg, 'dry_run');
 }
 
-async function tick() {
+async function tick(now = new Date()) {
     try {
         const policy = store.readPolicy();
-        const now = new Date();
         const lastActivity = await getLastVisitorActivity();
 
         lastCheck = now.toISOString();
@@ -182,7 +187,7 @@ async function tick() {
 
         if (result.action === 'warn') {
             console.log(`🛌 Hibernation: warning - ${result.reason}`);
-            addEvent('warning', result.rule, `Warning: ${result.reason}`, policy.enforcement);
+            addEvent('warning', result.rule, `Warning: ${result.reason}`, policy.enforcement, { minutesLeft: result.minutesLeft });
         } else if (result.action === 'hibernate') {
             performHibernation(policy, result);
         }
@@ -196,6 +201,7 @@ async function tick() {
 function start() {
     if (timer) return;
     console.log('🛌 Hibernation policy checker started (checks every minute, Dry Run safe)');
+    realtime.setSnapshotProvider(() => ({ events: events.slice(0, 20) }));
     setTimeout(tick, 5000);                 // first check shortly after startup
     timer = setInterval(tick, CHECK_EVERY_MS);
 }

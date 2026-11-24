@@ -1,0 +1,19 @@
+{
+  "lastAttemptAt": "2026-11-24T12:09:44.061Z",
+  "history": [
+    {
+      "trigger": "manual",
+      "startedBy": "systemadmin",
+      "startedAt": "2026-11-24T12:09:42.783Z",
+      "finishedAt": "2026-11-24T12:09:44.061Z",
+      "status": "success",
+      "archived": 90,
+      "removed": 90,
+      "keptBecauseUsedAgain": 0,
+      "file": "ai-cache-20261124-200942.json",
+      "sizeBytes": 40454,
+      "deletedOldArchives": 0,
+      "message": "Archived 90 entries to ai-cache-20261124-200942.json and removed 90 from the live cache."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "frequency": "weekly",
+  "dayOfWeek": 0,
+  "dayOfMonth": 1,
+  "time": "02:00",
+  "unusedForDays": 30,
+  "keepArchives": 12,
+  "updated_by": "systemadmin",
+  "last_updated": "2026-11-24T12:09:31.864Z"
+}
