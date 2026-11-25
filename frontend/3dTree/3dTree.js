@@ -56,6 +56,16 @@
 // FIND COMMAND
 //    rg -n "YU KANG CHANGE SUMMARY|DONE BY YU KANG" frontend backend
 // ============================================================
+//
+// CLEANUP NOTE
+// ============================================================
+// The 2D leaf-overlay system (DOM leaves, mask placement, leaf-fall
+// animation, leaf detail card, demo-fall mode) has been removed ahead of
+// the three.js renderer. Admin parameters, visitor/VIP/year-review data
+// fetching, the year review book, and the title heading are retained.
+// Leaf-related config values are still loaded into TreeManager so the
+// upcoming three.js leaf system can consume them.
+// ============================================================
 
 
 // TREE.JS - TABLE OF CONTENTS
@@ -66,32 +76,30 @@
 //
 // INITIALIZATION & SETUP
 //   - init()                           - Initialize tree and load data
-//   - loadTreeImage()                  - Load tree images with promises
 //   - normalizeName()                  - Normalize names for VIP matching
 //   - fetchVipNames()                  - Fetch VIP names from API (/api/tree/vip-names)
 //   - isVipName()                      - Check if a visitor name is VIP (using vipNames Set)
 //   - fetchVisitorData()               - Fetch visitor data from API (/api/tree)
+//   - fetchYearReviewData()            - Fetch yearly summaries from /api/tree/years
+//   - fetchParameterConfig()           - Load admin tree/visual parameters
 //
-// TREE VISUALIZATION
-//   - createLeaves()                   - Create leaf elements for visitors
-//   - calculateOvalArea()              - Calculate oval area (fallback only)
-//   - updateOvalOverlay()              - Update debug overlay (optional)
-//   - buildMaskCanvas()                - Build offscreen canvas from stage4leaves.png
-//   - findRandomPositionInLeavesMask() - Find random position inside mask
-//   - createLeaf()                     - Create an individual leaf
-//   - findRandomPositionInOval()       - Fallback placement
-//
-// VISUAL EFFECTS & UPDATES
-//   - updateLeavesTransparency()        - Keep mask image ALWAYS hidden
-//   - refreshTree()                    - Refresh tree visualization
+// YEAR REVIEW BOOK
+//   - bindYearReviewControls()         - Wire book toggle, nav and view buttons
+//   - toggleYearReviewBook()           - Open/close the book
+//   - turnReviewPage()                 - Flip between yearly pages
+//   - viewReviewYear() / viewLiveYear()- Switch the active year
+//   - renderYearReviewBook()           - Render current page content
+//   - updateTreeHeading()              - Update title/subtitle text
 //
 // CONFIGURATION
-//   - setOvalPosition()                - Set oval offset (fallback only)
-//   - addVisitor()                     - Manual test add
+//   - applyTitleBoxVisibility()        - Show/hide title box per admin setting
+//   - applyTreeStageAssets()           - Store normalized tree stage for renderer
+//   - refreshTree()                    - Extension point for the three.js renderer
 //
 // GLOBAL LISTENERS
 //   - on load                          - Init
-//   - setInterval refresh              - Refresh every 30s (VIP + visitors)
+//   - setTimeout refresh               - Refresh on admin-configured interval
+//   - tree-vip-refresh / storage       - Refresh data after VIP updates
 //   - resize                           - Refresh on resize
 // ============================================================
 
@@ -109,9 +117,6 @@ class TreeManager {
 
     constructor() {
         // DOM Elements
-        //this.treeImage = document.getElementById('treeImage');
-        this.treeImageLeaves = document.getElementById('treeImageLeaves');
-        this.leavesContainer = document.getElementById('leavesContainer');
         this.loadingMessage = document.getElementById('loadingMessage');
         this.treeTitleBox = document.querySelector('.tree-title');
         this.treeTitle = document.getElementById('treeTitle');
@@ -128,13 +133,6 @@ class TreeManager {
         this.bookCloseButton = document.getElementById('bookCloseButton');
         this.bookTurnSheet = document.getElementById('bookTurnSheet');
         this.bookTurnYear = document.getElementById('bookTurnYear');
-        this.leafDetailCard = document.getElementById('leafDetailCard');
-        this.leafDetailClose = document.getElementById('leafDetailClose');
-        this.leafDetailPrivacy = document.getElementById('leafDetailPrivacy');
-        this.leafDetailName = document.getElementById('leafDetailName');
-        this.leafDetailBadge = document.getElementById('leafDetailBadge');
-        this.leafDetailDate = document.getElementById('leafDetailDate');
-        this.leafDetailSnippet = document.getElementById('leafDetailSnippet');
 
         // Data
         this.visitors = [];
@@ -146,11 +144,9 @@ class TreeManager {
         this.isBookOpen = false;
         this.urlParams = new URLSearchParams(window.location.search);
         this.demoYearsEnabled = this.urlParams.get('demoYears') === '1';
-        this.demoFallEnabled = this.urlParams.get('demoFall') === '1';
-        this.demoFallLeafCount = this.parseDemoLeafCount(this.urlParams.get('leaves'));
         this.isBookFlipping = false;
 
-        // VIP Names (for golden leaves)
+        // VIP Names (reserved for golden leaves in the three.js renderer)
         this.vipNames = new Set();
 
         this.badgeLeafProfiles = {
@@ -199,10 +195,8 @@ class TreeManager {
         };
 
         // ====================================================
-        // CANOPY AREA (UPDATED: smaller + moved up)
+        // ADMIN-CONFIGURABLE PARAMETERS (stored for renderer)
         // ====================================================
-        // These control where leaves are allowed to spawn.
-        // Smaller area prevents leaves from appearing outside branches.
         this.ovalWidth = 850;
         this.ovalHeight = 300;
         this.ovalTopOffset = -100;
@@ -211,19 +205,16 @@ class TreeManager {
         this.leafAnimationDuration = 500;
         this.leafFallThreshold = 15;
         this.leafFallDuration = 4200;
+        this.leafDisplayScale = 1;
         this.badgeLeafColors = { ...DEFAULT_BADGE_LEAF_COLORS };
         this.treeStage = 0;
         this.showTitleBox = true;
         this.activeCampaign = null;
-        this.leafFallStarted = false;
-        this.leafGreenTimer = null;
-        this.leafFallCycleNumber = 0;
+        this.leafOverrideImage = null;
 
-        // Mask cache
-        this.maskData = null;
-
-        // Debug overlay toggle (set true if you want to see an oval)
-        this.debugOval = false;
+        // Three.js scene (treeScene.js)
+        this.treeScene = null;
+        this.treeCanvas = document.getElementById('treeCanvas');
 
         this.init();
     }
@@ -233,24 +224,13 @@ class TreeManager {
     async init() {
         try {
             await this.fetchParameterConfig();
-            await this.loadTreeImage();
-
-            // Force mask image hidden always
-            this.updateLeavesTransparency();
-
-            // Build mask from stage4leaves.png
-            this.maskData = this.buildMaskCanvas();
-
-            // Load VIP list first, then visitors
             this.bindYearReviewControls();
-            this.bindLeafDetailControls();
             await this.fetchVipNames();
             await this.fetchYearReviewData();
             await this.fetchVisitorData(this.currentYear);
             this.updateTreeHeading();
             this.renderYearReviewBook();
-
-            this.createLeaves();
+            await this.initTreeScene();
         } catch (err) {
             console.error('Init error:', err);
         } finally {
@@ -283,13 +263,7 @@ class TreeManager {
             this.showTitleBox = tree.showTitleBox !== false;
             this.activeCampaign = campaign.enabled === true ? campaign : null;
             this.applyTitleBoxVisibility();
-
             this.applyTreeStageAssets(this.treeStage);
-
-            if (this.demoFallEnabled) {
-                this.leafFallThreshold = this.demoFallLeafCount || this.leafFallThreshold;
-                this.leafFallDuration = Math.min(Number(this.urlParams.get('duration')) || this.leafFallDuration, 10000);
-            }
 
             if (assets.treeBackground) {
                 document.body.style.backgroundImage = `url('${assets.treeBackground}')`;
@@ -314,8 +288,8 @@ class TreeManager {
 
     applyTitleBoxVisibility() {
         if (this.treeTitleBox) {
-        this.treeTitleBox.style.display = 'block';
-    }
+            this.treeTitleBox.style.display = this.showTitleBox ? 'block' : 'none';
+        }
     }
 
     normalizeTreeStage(rawStage) {
@@ -326,85 +300,9 @@ class TreeManager {
         return Math.max(0, Math.min(4, parsed));
     }
 
-    stageHasLeaves() {
-        return this.normalizeTreeStage(this.treeStage) > 0;
-    }
-
     applyTreeStageAssets(stageNumber) {
-        const stage = this.normalizeTreeStage(stageNumber);
-        this.treeStage = stage;
-
-        if (this.treeImage) {
-            this.treeImage.src = `/assets/Tree/stage${stage}.png`;
-        }
-
-        if (this.treeImageLeaves) {
-            this.treeImageLeaves.src = `/assets/Tree/stage${stage}leaves.png`;
-        }
-
-        this.updateStageLeavesVisibility();
-    }
-
-    loadTreeImage() {
-        return new Promise((resolve) => {
-            const stage = this.normalizeTreeStage(this.treeStage);
-            const trunkSources = [
-                `/assets/Tree/stage/stage${stage}.png`,
-                `/assets/Tree/stage${stage}.png`,
-                '/assets/Tree/stage0.png'
-            ];
-            const leavesSources = [
-                `/assets/Tree/stage/stage${stage}leaves.png`,
-                `/assets/Tree/stage${stage}leaves.png`,
-                '/assets/Tree/stage/stage4leaves.png',
-                '/assets/Tree/stage4leaves.png'
-            ];
-
-            const leavesPromise = this.stageHasLeaves()
-                ? this.loadImageWithFallback(this.treeImageLeaves, leavesSources)
-                : Promise.resolve(true);
-
-            Promise.all([
-                this.loadImageWithFallback(this.treeImage, trunkSources),
-                leavesPromise
-            ]).finally(resolve);
-        });
-    }
-
-        loadImageWithFallback(imageEl, sourceCandidates) {
-            return new Promise((resolve) => {
-                if (!imageEl || !Array.isArray(sourceCandidates) || sourceCandidates.length === 0) {
-                    resolve(false);
-                    return;
-                }
-
-            let index = 0;
-            const tryNext = () => {
-                if (index >= sourceCandidates.length) {
-                    imageEl.onload = null;
-                    imageEl.onerror = null;
-                    resolve(false);
-                    return;
-                }
-
-                const source = sourceCandidates[index];
-                index += 1;
-
-                imageEl.onload = () => {
-                    imageEl.onload = null;
-                    imageEl.onerror = null;
-                    resolve(true);
-                };
-
-                imageEl.onerror = () => {
-                    tryNext();
-                };
-
-                imageEl.src = source;
-            };
-
-            tryNext();
-        });
+        this.treeStage = this.normalizeTreeStage(stageNumber);
+        this.refreshTree();
     }
 
     // ==================== VIP HELPERS ====================
@@ -445,16 +343,6 @@ class TreeManager {
             || DEFAULT_BADGE_LEAF_COLORS['feedback-completer'];
     }
 
-    getVisitorSeed(visitor, index) {
-        return [
-            visitor.id || visitor.feedback_id || '',
-            visitor.name || 'visitor',
-            visitor.created_at || '',
-            visitor.badgeKey || '',
-            index
-        ].join('|');
-    }
-
     hashString(value) {
         let hash = 2166136261;
         const text = String(value || '');
@@ -476,23 +364,9 @@ class TreeManager {
         };
     }
 
-    parseDemoLeafCount(value) {
-        const count = Number(value);
-        if (!Number.isInteger(count) || count < 1 || count > 80) return null;
-        return count;
-    }
-
     // ==================== DATA ====================
 
     async fetchVisitorData(year = this.selectedYear) {
-        if (this.demoFallEnabled && !this.isReviewMode) {
-            const count = this.demoFallLeafCount || Math.max(1, Number(this.leafFallThreshold) || 15);
-            this.leafFallThreshold = count;
-            this.visitors = this.createDemoFallVisitors(count);
-            console.log(`Loaded ${this.visitors.length} demo fall visitors`);
-            return;
-        }
-
         try {
             const query = year ? `?year=${encodeURIComponent(year)}` : '';
             const response = await fetch(`/api/tree${query}`);
@@ -597,59 +471,6 @@ class TreeManager {
         }
     }
 
-    bindLeafDetailControls() {
-        if (this.leafDetailClose) {
-            this.leafDetailClose.addEventListener('click', () => this.closeLeafDetail());
-        }
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') this.closeLeafDetail();
-        });
-    }
-
-    formatLeafDate(value) {
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return 'Date unavailable';
-        return date.toLocaleDateString('en-SG', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-    }
-
-    openLeafDetail(visitor, badgeProfile) {
-        if (!this.leafDetailCard) return;
-
-        const badgeName = visitor.badgeName || badgeProfile.label || 'Feedback Contributor';
-        const snippet = visitor.pledgeSnippet || 'No pledge snippet was shared for this leaf.';
-
-        if (this.leafDetailPrivacy) {
-            this.leafDetailPrivacy.textContent = visitor.privacyLabel || 'Leaf details';
-        }
-        if (this.leafDetailName) {
-            this.leafDetailName.textContent = visitor.name || 'Anonymous visitor';
-        }
-        if (this.leafDetailBadge) {
-            this.leafDetailBadge.textContent = badgeName;
-            this.leafDetailBadge.style.setProperty('--leaf-detail-badge-color', this.getBadgeLeafColor(visitor));
-        }
-        if (this.leafDetailDate) {
-            this.leafDetailDate.textContent = this.formatLeafDate(visitor.created_at);
-        }
-        if (this.leafDetailSnippet) {
-            this.leafDetailSnippet.textContent = snippet;
-        }
-
-        this.leafDetailCard.classList.add('active');
-        this.leafDetailCard.setAttribute('aria-hidden', 'false');
-    }
-
-    closeLeafDetail() {
-        if (!this.leafDetailCard) return;
-        this.leafDetailCard.classList.remove('active');
-        this.leafDetailCard.setAttribute('aria-hidden', 'true');
-    }
-
     toggleYearReviewBook() {
         if (this.isBookOpen) {
             this.closeYearReviewBook();
@@ -742,16 +563,6 @@ class TreeManager {
     }
 
     updateTreeHeading() {
-        if (this.demoFallEnabled && !this.isReviewMode) {
-            if (this.treeTitle) {
-                this.treeTitle.textContent = 'ESG Digital Tree - Leaf Fall Demo';
-            }
-            if (this.treeSubtitle) {
-                this.treeSubtitle.textContent = `${this.visitors.length} demo leaves will fall. No live feedback data is changed.`;
-            }
-            return;
-        }
-
         if (this.treeTitle) {
             this.treeTitle.textContent = this.isReviewMode
                 ? `${this.selectedYear} ESG Tree Review`
@@ -827,504 +638,27 @@ class TreeManager {
         });
     }
 
-    createDemoFallVisitors(count) {
-        const badgeKeys = Object.keys(this.badgeLeafProfiles);
-        const now = Date.now();
+    // ==================== RENDERER HOOK ====================
 
-        return Array.from({ length: count }, (_, index) => {
-            const badgeKey = badgeKeys[index % badgeKeys.length];
-            const badgeProfile = this.badgeLeafProfiles[badgeKey];
+    async initTreeScene() {
+        if (this.treeScene || !this.treeCanvas) return;
 
-            return {
-                id: `demo-fall-${index + 1}`,
-                name: `Demo Visitor ${index + 1}`,
-                visit_count: 1 + (index % 3),
-                created_at: new Date(now - ((count - index) * 1800)).toISOString(),
-                isVip: false,
-                badgeKey,
-                badgeName: badgeProfile.label,
-                badgeColor: '',
-                pledgeTopic: badgeKey,
-                pledgeSnippet: 'Demo leaf for showing the kiosk leaf falling animation.',
-                hasPublicName: false,
-                privacyLabel: 'Demo mode - no database record'
-            };
-        });
-    }
-
-    // ==================== VISUALIZATION ====================
-
-    createLeaves() {
-        this.leavesContainer.innerHTML = '';
-        this.closeLeafDetail();
-        if (!this.stageHasLeaves()) {
-            return;
+        try {
+            const { TreeScene } = await import('./treeScene.js');
+            this.treeScene = new TreeScene();
+            await this.treeScene.init(this.treeCanvas);
+            this.treeScene.setStage(this.treeStage);
+        } catch (error) {
+            console.error('Failed to initialize Three.js tree scene:', error);
         }
-        const leafCycle = this.getLeafCycleState();
-
-        const treeRect = this.treeImage.getBoundingClientRect();
-        const containerRect = this.leavesContainer.getBoundingClientRect();
-        const ovalArea = this.calculateOvalArea(treeRect, containerRect);
-
-        if (this.debugOval) {
-            this.updateOvalOverlay(ovalArea);
-        } else {
-            const overlay = document.getElementById('ovalOverlay');
-            if (overlay) {
-                overlay.style.borderColor = 'rgba(255, 0, 0, 0)';
-                overlay.style.background = 'transparent';
-            }
-        }
-
-        leafCycle.visibleVisitors.forEach((visitor, index) => {
-            this.createLeaf(visitor, index, ovalArea);
-        });
-
-        this.applyLeafThresholdEffect(leafCycle);
-    }
-
-    getLeafCycleState() {
-        const threshold = Math.max(1, Number(this.leafFallThreshold) || 15);
-        const visitors = Array.isArray(this.visitors) ? this.visitors : [];
-
-        if (this.demoFallEnabled && !this.isReviewMode) {
-            return {
-                visibleVisitors: visitors.slice(0, threshold),
-                shouldFallAway: visitors.length > 0,
-                cycleNumber: Date.now(),
-                threshold
-            };
-        }
-
-        if (this.isReviewMode || visitors.length < threshold) {
-            return {
-                visibleVisitors: visitors,
-                shouldFallAway: false,
-                cycleNumber: 0,
-                threshold
-            };
-        }
-
-        const completedCycles = Math.floor(visitors.length / threshold);
-        const remainder = visitors.length % threshold;
-
-        if (remainder > 0) {
-            return {
-                visibleVisitors: visitors.slice(-remainder),
-                shouldFallAway: false,
-                cycleNumber: completedCycles,
-                threshold
-            };
-        }
-
-        const clearedCycle = this.getClearedLeafCycle(threshold);
-        if (completedCycles <= clearedCycle) {
-            return {
-                visibleVisitors: [],
-                shouldFallAway: false,
-                cycleNumber: completedCycles,
-                threshold
-            };
-        }
-
-        return {
-            visibleVisitors: visitors.slice(-threshold),
-            shouldFallAway: true,
-            cycleNumber: completedCycles,
-            threshold
-        };
-    }
-
-    getClearedLeafCycleKey(threshold) {
-        return `rp-tree-cleared-cycle:${this.selectedYear}:${threshold}`;
-    }
-
-    getClearedLeafCycle(threshold) {
-        const value = Number(localStorage.getItem(this.getClearedLeafCycleKey(threshold)));
-        return Number.isFinite(value) ? value : 0;
-    }
-
-    setClearedLeafCycle(threshold, cycleNumber) {
-        localStorage.setItem(this.getClearedLeafCycleKey(threshold), String(cycleNumber));
-    }
-
-    calculateOvalArea(treeRect, containerRect) {
-        const centerX =
-            treeRect.left - containerRect.left + (treeRect.width / 2);
-
-        // UPDATED: move canopy center slightly higher
-        const centerY =
-            treeRect.top - containerRect.top + (treeRect.height * 0.32);
-
-        return {
-            x: centerX - (this.ovalWidth / 2),
-            y: centerY - (this.ovalHeight / 2) + this.ovalTopOffset,
-            width: this.ovalWidth,
-            height: this.ovalHeight
-        };
-    }
-
-    updateOvalOverlay(ovalArea) {
-        let ovalOverlay = document.getElementById('ovalOverlay');
-
-        if (!ovalOverlay) {
-            ovalOverlay = document.createElement('div');
-            ovalOverlay.id = 'ovalOverlay';
-            document.getElementById('treeContainer').appendChild(ovalOverlay);
-        }
-
-        ovalOverlay.style.position = 'absolute';
-        ovalOverlay.style.width = `${ovalArea.width}px`;
-        ovalOverlay.style.height = `${ovalArea.height}px`;
-        ovalOverlay.style.left = `${ovalArea.x}px`;
-        ovalOverlay.style.top = `${ovalArea.y}px`;
-        ovalOverlay.style.transform = 'none';
-    }
-
-    // ==================== MASK ====================
-
-    buildMaskCanvas() {
-        if (!this.stageHasLeaves()) {
-            return null;
-        }
-
-        if (!this.treeImageLeaves) {
-            console.warn('treeImageLeaves not found - mask disabled');
-            return null;
-        }
-
-        const img = this.treeImageLeaves;
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
-
-        if (!w || !h) {
-            console.warn('stage4leaves image not ready - mask disabled');
-            return null;
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        return { canvas, ctx, w, h };
-    }
-
-    maskPixelHasLeafSupport(ctx, x, y, w, h, leafSize, scaleX, scaleY) {
-        const radiusX = Math.max(8, leafSize * 0.18 * scaleX);
-        const radiusY = Math.max(8, leafSize * 0.18 * scaleY);
-        const samples = [
-            [x, y],
-            [x - radiusX, y],
-            [x + radiusX, y],
-            [x, y - radiusY],
-            [x, y + radiusY]
-        ];
-
-        let supportedSamples = 0;
-
-        for (const [sampleX, sampleY] of samples) {
-            const px = Math.max(0, Math.min(w - 1, Math.floor(sampleX)));
-            const py = Math.max(0, Math.min(h - 1, Math.floor(sampleY)));
-            const alpha = ctx.getImageData(px, py, 1, 1).data[3];
-
-            if (alpha > 45) {
-                supportedSamples += 1;
-            }
-        }
-
-        return supportedSamples >= 4;
-    }
-
-    findRandomPositionInLeavesMask(leafSize, seed) {
-        if (!this.maskData || !this.treeImageLeaves) {
-            return null;
-        }
-
-        const { ctx, w, h } = this.maskData;
-        const random = this.createSeededRandom(seed);
-
-        const treeModel = document.getElementById('treeModel');
-        const rect = this.treeImageLeaves.getBoundingClientRect();
-        const containerRect = this.leavesContainer.getBoundingClientRect();
-
-        const left = rect.left - containerRect.left;
-        const top = rect.top - containerRect.top;
-
-        const displayW = rect.width;
-        const displayH = rect.height;
-
-        if (!displayW || !displayH) {
-            return null;
-        }
-
-        const scaleX = w / displayW;
-        const scaleY = h / displayH;
-
-        for (let i = 0; i < 900; i++) {
-            const rx = random() * displayW;
-            const ry = random() * displayH;
-
-            const nx = Math.floor(rx * scaleX);
-            const ny = Math.floor(ry * scaleY);
-
-            const pixel = ctx.getImageData(nx, ny, 1, 1).data;
-            const alpha = pixel[3];
-
-            // Alpha plus neighbour checks keep leaves anchored in the canopy, away from loose edges.
-            if (alpha > 55 && this.maskPixelHasLeafSupport(ctx, nx, ny, w, h, leafSize, scaleX, scaleY)) {
-                return {
-                    x: left + rx - leafSize / 2,
-                    y: top + ry - leafSize / 2
-                };
-            }
-        }
-
-        return null;
-    }
-
-    // ==================== LEAF CREATION ====================
-
-    createLeaf(visitor, index, ovalArea) {
-        const leaf = document.createElement('div');
-        leaf.className = 'leaf';
-        const visitorSeed = this.getVisitorSeed(visitor, index);
-        const seededRandom = this.createSeededRandom(`${visitorSeed}|leaf`);
-
-        const isVip = Boolean(visitor.isVip) || this.isVipName(visitor.name);
-        if (isVip) {
-            leaf.classList.add('vip');
-        }
-        const badgeProfile = this.getBadgeLeafProfile(visitor);
-        leaf.classList.add(badgeProfile.className);
-        const badgeLeafColor = this.getBadgeLeafColor(visitor);
-        leaf.dataset.badgeColor = badgeLeafColor;
-        if (!isVip) {
-            leaf.classList.add('leaf-tinted');
-            leaf.style.setProperty('--leaf-badge-color', badgeLeafColor);
-        }
-        leaf.dataset.badge = visitor.badgeKey || 'feedback-completer';
-        leaf.title = `${visitor.name || 'Anonymous visitor'} - ${visitor.badgeName || badgeProfile.label}`;
-        leaf.setAttribute('role', 'button');
-        leaf.setAttribute('tabindex', '0');
-        leaf.setAttribute('aria-label', `View ${visitor.name || 'anonymous visitor'} leaf details`);
-
-        const side = badgeProfile.preferredSide || (seededRandom() > 0.5
-            ? 'LeftLeaf.png'
-            : 'RightLeaf.png');
-
-        const visitTime = new Date(visitor.created_at);
-        const now = new Date();
-        const diffInMinutes = (now - visitTime) / 60000;
-
-        let finalLeafImage;
-
-        if (isVip) {
-            finalLeafImage = 'Gold' + side;
-        } else {
-            finalLeafImage =
-                diffInMinutes >= 0 && diffInMinutes <= 2
-                    ? 'New' + side
-                    : 'Old' + side;
-        }
-
-        const leafBasePath = isVip ? '/assets/Tree/vip_leaf' : '/assets/Tree/leaf';
-
-        if (this.leafOverrideImage) {
-            leaf.style.backgroundImage = `url('${this.leafOverrideImage}')`;
-        } else {
-            leaf.style.backgroundImage = `url('${leafBasePath}/${finalLeafImage}')`;
-        }
-        leaf.style.opacity = String(this.leafOpacity);
-        leaf.style.setProperty('--leaf-visible-opacity', String(this.leafOpacity));
-        leaf.style.animationDuration = `${this.leafAnimationDuration}ms`;
-        leaf.style.setProperty('--leaf-fall-duration', `${this.leafFallDuration}ms`);
-        leaf.style.setProperty('--leaf-fall-delay', `${Math.min(index * 90, 1200)}ms`);
-        leaf.style.setProperty('--leaf-fall-distance', `${360 + (seededRandom() * 260)}px`);
-        leaf.style.setProperty('--leaf-fall-drift', `${(seededRandom() - 0.5) * 300}px`);
-        leaf.style.setProperty('--leaf-fall-sway-a', `${(seededRandom() - 0.5) * 70}px`);
-        leaf.style.setProperty('--leaf-fall-sway-b', `${(seededRandom() - 0.5) * 120}px`);
-        leaf.style.setProperty('--leaf-fall-sway-c', `${(seededRandom() - 0.5) * 90}px`);
-        leaf.style.setProperty('--leaf-fall-rotation', `${(seededRandom() - 0.5) * 360}deg`);
-        leaf.style.setProperty('--leaf-fall-tilt', `${(seededRandom() - 0.5) * 46}deg`);
-
-        const baseLeafSize = 80 + ((visitor.visit_count || 1) * 5);
-        const scale = typeof this.leafDisplayScale === 'number' ? this.leafDisplayScale : 1;
-        const leafSize = Math.max(8, Math.round(baseLeafSize * scale));
-        leaf.style.width = `${leafSize}px`;
-        leaf.style.height = `${leafSize}px`;
-        leaf.style.setProperty('--leaf-size', `${leafSize}px`);
-
-        // 1) Place within mask
-        let position = this.findRandomPositionInLeavesMask(leafSize, `${visitorSeed}|position`);
-
-        // 2) Fallback to oval
-        if (!position) {
-            position = this.findRandomPositionInOval(ovalArea, leafSize, `${visitorSeed}|fallback`);
-        }
-
-        leaf.style.left = `${position.x}px`;
-        leaf.style.top = `${position.y}px`;
-
-        const useFlippedOverride = Boolean(this.leafOverrideImage) && seededRandom() > 0.5;
-        const leafImageUrl = this.leafOverrideImage
-            ? this.leafOverrideImage
-            : `${leafBasePath}/${finalLeafImage}`;
-
-        leaf.classList.toggle('leaf-image-flipped', useFlippedOverride);
-        leaf.style.setProperty('--leaf-image-url', `url('${leafImageUrl}')`);
-        leaf.style.setProperty('--leaf-image-scale-x', useFlippedOverride ? '-1' : '1');
-        leaf.style.backgroundImage = 'none';
-
-        const nameElement = document.createElement('div');
-        nameElement.className = 'leaf-name';
-        nameElement.textContent = visitor.name || 'Anonymous';
-        nameElement.style.setProperty('--leaf-name-font-size', `${this.getLeafNameFontSize(visitor.name || 'Anonymous', leafSize)}px`);
-        leaf.appendChild(nameElement);
-
-        if (visitor.badgeName && !isVip) {
-            const badgeElement = document.createElement('div');
-            badgeElement.className = 'leaf-badge';
-            badgeElement.textContent = badgeProfile.shortLabel;
-            leaf.appendChild(badgeElement);
-        }
-
-        leaf.addEventListener('click', (event) => {
-            event.stopPropagation();
-            this.openLeafDetail(visitor, badgeProfile);
-        });
-        leaf.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                this.openLeafDetail(visitor, badgeProfile);
-            }
-        });
-
-        this.leavesContainer.appendChild(leaf);
-    }
-
-    getLeafNameFontSize(name, leafSize) {
-        const normalizedName = String(name || '').trim();
-        const length = normalizedName.length || 1;
-        const size = Number(leafSize) || 80;
-
-        const sizeBasedFont = size * 0.13;
-        const lengthPenalty = Math.min(0.6, Math.max(0, (length - 6) * 0.035));
-        const adjustedFont = sizeBasedFont * (1 - lengthPenalty);
-
-        return Math.max(6, Math.min(14, Math.round(adjustedFont)));
-    }
-
-    applyLeafThresholdEffect(leafCycle) {
-        if (!leafCycle.shouldFallAway) {
-            this.leafFallStarted = false;
-            this.leafFallCycleNumber = leafCycle.cycleNumber || 0;
-            if (this.leafGreenTimer) {
-                window.clearTimeout(this.leafGreenTimer);
-                this.leafGreenTimer = null;
-            }
-            return;
-        }
-
-        const leaves = Array.from(this.leavesContainer.querySelectorAll('.leaf'));
-
-        leaves.forEach(leaf => {
-            leaf.classList.add('leaf-falling');
-        });
-
-        if (this.leafFallStarted && this.leafFallCycleNumber === leafCycle.cycleNumber) return;
-        this.leafFallStarted = true;
-        this.leafFallCycleNumber = leafCycle.cycleNumber;
-
-        const maxFallDelay = Math.min(Math.max(0, leaves.length - 1) * 90, 1200);
-        const clearDelay = maxFallDelay + Math.max(500, Number(this.leafFallDuration) || 4200);
-        this.leafGreenTimer = window.setTimeout(() => {
-            this.setClearedLeafCycle(leafCycle.threshold, leafCycle.cycleNumber);
-            this.leavesContainer.querySelectorAll('.leaf').forEach(leaf => {
-                leaf.classList.remove('leaf-falling');
-                leaf.classList.add('leaf-fallen', 'leaf-cleared');
-            });
-            this.leafGreenTimer = null;
-        }, clearDelay);
-    }
-
-    findRandomPositionInOval(ovalArea, leafSize, seed) {
-        let x;
-        let y;
-        let tries = 0;
-        const random = this.createSeededRandom(seed);
-
-        const cx = ovalArea.x + ovalArea.width / 2;
-        const cy = ovalArea.y + ovalArea.height / 2;
-
-        const a = ovalArea.width / 2;
-        const b = ovalArea.height / 2;
-
-        do {
-            x = (random() * 2 - 1) * a;
-            y = (random() * 2 - 1) * b;
-
-            tries += 1;
-            if (tries > 500) break;
-        } while ((x * x) / (a * a) + (y * y) / (b * b) > 1);
-
-        return {
-            x: cx + x - leafSize / 2,
-            y: cy + y - leafSize / 2
-        };
-    }
-
-    // ==================== FIX: KEEP MASK ALWAYS HIDDEN ====================
-
-    updateLeavesTransparency() {
-        if (this.treeImageLeaves) {
-            /*this.treeImageLeaves.style.display = 'block';
-            this.treeImageLeaves.style.opacity = '0';*/
-            this.treeImageLeaves.style.pointerEvents = 'none';
-        }
-
-        this.updateStageLeavesVisibility();
-    }
-
-    updateStageLeavesVisibility() {
-        if (!this.treeImageLeaves) {
-            return;
-        }
-
-        if (!this.stageHasLeaves()) {
-            this.treeImageLeaves.style.display = 'none';
-            return;
-        }
-
-        this.treeImageLeaves.style.display = 'block';
     }
 
     refreshTree() {
-        this.updateLeavesTransparency();
-
-        // rebuild mask (helps after resize)
-        this.maskData = this.buildMaskCanvas();
-
-        this.createLeaves();
-    }
-
-    // ==================== CONFIG ====================
-
-    setOvalPosition(topOffset) {
-        this.ovalTopOffset = topOffset;
-        this.refreshTree();
-    }
-
-    addVisitor(name, visitCount = 1) {
-        this.visitors.push({
-            name,
-            visit_count: visitCount,
-            created_at: new Date().toISOString()
-        });
-
-        this.refreshTree();
+        // Reserved for the upcoming three.js leaf system.
+        if (this.treeScene) {
+            this.treeScene.setStage(this.treeStage);
+            this.treeScene.refresh();
+        }
     }
 }
 

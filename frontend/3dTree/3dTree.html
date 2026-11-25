@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESG Digital Tree 3D</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "/3dTree/node_modules/three/build/three.module.js",
+            "three/addons/": "/3dTree/node_modules/three/examples/jsm/"
+        }
+    }
+    </script>
 
-    <link rel="stylesheet" href="3dTree.css?v=badge-colors-20260716-1">
-    <script src="3dTree.js?v=badge-colors-20260716-1" defer></script>
+    <link rel="stylesheet" href="3dTree.css?v=threejs-20261122-1">
+    <script src="3dTree.js?v=threejs-20261122-1" defer></script>
 </head>
 <body>
     <div id="treeContainer">
@@ -43,30 +50,11 @@
             </div>
         </aside>
         
-        <!-- Hidden 2D anchors keep the shared tree script working on the 3D page. -->
-        <!--<img id="treeImage" src="/assets/Tree/stage4.png" alt="" aria-hidden="true">
-        <img id="treeImageLeaves" src="/assets/Tree/stage4leaves.png" alt="" aria-hidden="true">-->
+        <canvas id="treeCanvas"></canvas>
 
-        <model-viewer id="treeModel" src="/assets/Tree/Tree_WO_base.glb" alt="ESG 3D Tree" camera-controls shadow-intensity="1" exposure="1" interaction-prompt="none" camera-orbit="270deg 90deg 200%">
-        </model-viewer>
-        
-        <div id="ovalOverlay"></div>
-        <div id="leavesContainer"></div>
-        
         <div class="loading" id="loadingMessage">
             Loading tree data...
         </div>
-
-        <aside class="leaf-detail-card" id="leafDetailCard" aria-live="polite" aria-hidden="true">
-            <button class="leaf-detail-close" id="leafDetailClose" type="button" aria-label="Close leaf details">×</button>
-            <p class="leaf-detail-kicker" id="leafDetailPrivacy">Leaf details</p>
-            <h2 id="leafDetailName">Anonymous visitor</h2>
-            <div class="leaf-detail-meta">
-                <span id="leafDetailBadge">Feedback Contributor</span>
-                <span id="leafDetailDate">Today</span>
-            </div>
-            <p class="leaf-detail-quote" id="leafDetailSnippet">Select a leaf to view its pledge snippet.</p>
-        </aside>
     </div>
 
 </body>
