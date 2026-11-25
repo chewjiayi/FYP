@@ -133,6 +133,13 @@ class TreeManager {
         this.bookCloseButton = document.getElementById('bookCloseButton');
         this.bookTurnSheet = document.getElementById('bookTurnSheet');
         this.bookTurnYear = document.getElementById('bookTurnYear');
+        this.leafDetailCard = document.getElementById('leafDetailCard');
+        this.leafDetailClose = document.getElementById('leafDetailClose');
+        this.leafDetailPrivacy = document.getElementById('leafDetailPrivacy');
+        this.leafDetailName = document.getElementById('leafDetailName');
+        this.leafDetailBadge = document.getElementById('leafDetailBadge');
+        this.leafDetailDate = document.getElementById('leafDetailDate');
+        this.leafDetailSnippet = document.getElementById('leafDetailSnippet');
 
         // Data
         this.visitors = [];
@@ -206,6 +213,8 @@ class TreeManager {
         this.leafFallThreshold = 15;
         this.leafFallDuration = 4200;
         this.leafDisplayScale = 1;
+        this.vipLeafDisplayScale = 1;
+        this.badgeTintDurationMs = 24 * 60 * 60 * 1000;
         this.badgeLeafColors = { ...DEFAULT_BADGE_LEAF_COLORS };
         this.treeStage = 0;
         this.showTitleBox = true;
@@ -225,6 +234,8 @@ class TreeManager {
         try {
             await this.fetchParameterConfig();
             this.bindYearReviewControls();
+            this.bindLeafDetailControls();
+            this.bindLeafClick();
             await this.fetchVipNames();
             await this.fetchYearReviewData();
             await this.fetchVisitorData(this.currentYear);
@@ -242,7 +253,7 @@ class TreeManager {
 
     async fetchParameterConfig() {
         try {
-            const response = await fetch('/api/parameters');
+            const response = await fetch('/api/parameters', { cache: 'no-store' });
             const data = await response.json();
             if (!response.ok || !data.success) return;
 
@@ -274,12 +285,23 @@ class TreeManager {
             this.leafDisplayScale = Number.isFinite(configuredLeafScale)
                 ? configuredLeafScale
                 : (Number.isFinite(configuredBadgeLeafScale) ? configuredBadgeLeafScale : 1);
+            const configuredVipLeafScale = Number(tree.vipLeafDisplayScale);
+            this.vipLeafDisplayScale = Number.isFinite(configuredVipLeafScale)
+                ? configuredVipLeafScale
+                : this.leafDisplayScale;
+            const configuredTintHours = Number(badgeLeafStyles.tintDurationHours);
+            if (Number.isFinite(configuredTintHours) && configuredTintHours > 0) {
+                this.badgeTintDurationMs = configuredTintHours * 60 * 60 * 1000;
+            }
             this.badgeLeafColors = {
                 ...DEFAULT_BADGE_LEAF_COLORS,
                 ...(badgeLeafStyles.colors || {})
             };
             this.leafOverrideImage = assets.leafImage
                 ? (assets.leafImage.startsWith('/') ? assets.leafImage : `/assets/Tree/leaf/${assets.leafImage}`)
+                : null;
+            this.vipLeafOverrideImage = assets.vipLeafImage
+                ? (assets.vipLeafImage.startsWith('/') ? assets.vipLeafImage : `/assets/Tree/vip-leaf/${assets.vipLeafImage}`)
                 : null;
         } catch (error) {
             console.warn('Tree parameter config unavailable:', error);
@@ -638,6 +660,85 @@ class TreeManager {
         });
     }
 
+    // ==================== LEAF DETAIL CARD ====================
+
+    bindLeafDetailControls() {
+        if (this.leafDetailClose) {
+            this.leafDetailClose.addEventListener('click', () => this.closeLeafDetail());
+        }
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') this.closeLeafDetail();
+        });
+    }
+
+    bindLeafClick() {
+        if (!this.treeCanvas) return;
+
+        let downX = 0;
+        let downY = 0;
+
+        this.treeCanvas.addEventListener('pointerdown', (event) => {
+            downX = event.clientX;
+            downY = event.clientY;
+        });
+
+        this.treeCanvas.addEventListener('pointerup', (event) => {
+            // Ignore drags (orbit/zoom) — only treat tiny movements as clicks
+            const moved = Math.hypot(event.clientX - downX, event.clientY - downY);
+            if (moved > 6 || !this.treeScene) return;
+
+            const hit = this.treeScene.pickLeaf(event.clientX, event.clientY);
+            if (!hit || hit.visitorIndex === null || hit.visitorIndex === undefined) return;
+
+            const visitor = this.visitors[hit.visitorIndex];
+            if (visitor) this.openLeafDetail(visitor);
+        });
+    }
+
+    formatLeafDate(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Date unavailable';
+        return date.toLocaleDateString('en-SG', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+    }
+
+    openLeafDetail(visitor) {
+        if (!this.leafDetailCard) return;
+
+        const badgeProfile = this.getBadgeLeafProfile(visitor);
+        const badgeName = visitor.badgeName || badgeProfile.label || 'Feedback Contributor';
+        const snippet = visitor.pledgeSnippet || 'No pledge snippet was shared for this leaf.';
+
+        if (this.leafDetailPrivacy) {
+            this.leafDetailPrivacy.textContent = visitor.privacyLabel || 'Leaf details';
+        }
+        if (this.leafDetailName) {
+            this.leafDetailName.textContent = visitor.name || 'Anonymous visitor';
+        }
+        if (this.leafDetailBadge) {
+            this.leafDetailBadge.textContent = badgeName;
+            this.leafDetailBadge.style.setProperty('--leaf-detail-badge-color', this.getBadgeLeafColor(visitor));
+        }
+        if (this.leafDetailDate) {
+            this.leafDetailDate.textContent = this.formatLeafDate(visitor.created_at);
+        }
+        if (this.leafDetailSnippet) {
+            this.leafDetailSnippet.textContent = snippet;
+        }
+
+        this.leafDetailCard.classList.add('active');
+        this.leafDetailCard.setAttribute('aria-hidden', 'false');
+    }
+
+    closeLeafDetail() {
+        if (!this.leafDetailCard) return;
+        this.leafDetailCard.classList.remove('active');
+        this.leafDetailCard.setAttribute('aria-hidden', 'true');
+    }
+
     // ==================== RENDERER HOOK ====================
 
     async initTreeScene() {
@@ -648,16 +749,67 @@ class TreeManager {
             this.treeScene = new TreeScene();
             await this.treeScene.init(this.treeCanvas);
             this.treeScene.setStage(this.treeStage);
+            this.refreshTree();
         } catch (error) {
             console.error('Failed to initialize Three.js tree scene:', error);
         }
+    }
+
+    // Build plain leaf descriptors for the Three.js scene.
+    // Mirrors the 2D tree's image selection: VIP gold leaves, New/Old by
+    // submission age, badge-preferred side, admin overrides, badge tint.
+    buildLeafDescriptors() {
+        return this.visitors.map((visitor, index) => {
+            const isVip = Boolean(visitor.isVip) || this.isVipName(visitor.name);
+            const badgeProfile = this.getBadgeLeafProfile(visitor);
+            const visitorSeed = String(visitor.id ?? visitor.name ?? `visitor-${index}`);
+            const seededRandom = this.createSeededRandom(`${visitorSeed}|leaf`);
+
+            const side = badgeProfile.preferredSide || (seededRandom() > 0.5
+                ? 'LeftLeaf.png'
+                : 'RightLeaf.png');
+
+            const createdAt = new Date(visitor.created_at);
+            const diffInMinutes = (Date.now() - createdAt.getTime()) / 60000;
+
+            let leafFile;
+            if (isVip) {
+                leafFile = 'Gold' + side;
+            } else {
+                leafFile = (diffInMinutes >= 0 && diffInMinutes <= 2 ? 'New' : 'Old') + side;
+            }
+
+            const leafBasePath = isVip ? '/assets/Tree/vip-leaf' : '/assets/Tree/leaf';
+            const leafOverrideImage = isVip ? this.vipLeafOverrideImage : this.leafOverrideImage;
+            const url = leafOverrideImage || `${leafBasePath}/${leafFile}`;
+
+            const withinTintWindow = !isVip
+                && Number.isFinite(createdAt.getTime())
+                && (Date.now() - createdAt.getTime()) >= 0
+                && (Date.now() - createdAt.getTime()) <= this.badgeTintDurationMs;
+            const tint = withinTintWindow ? this.getBadgeLeafColor(visitor) : null;
+
+            const baseLeafSize = 80 + ((visitor.visit_count || 1) * 5);
+            const scale = isVip ? this.vipLeafDisplayScale : this.leafDisplayScale;
+            const sizePx = Math.max(8, Math.round(baseLeafSize * (Number.isFinite(scale) ? scale : 1)));
+
+            return {
+                url,
+                tint,
+                sizePx,
+                name: visitor.name || 'Anonymous',
+                seed: `${visitorSeed}|leaf|${index}`,
+                visitorIndex: index,
+                opacity: this.leafOpacity
+            };
+        });
     }
 
     refreshTree() {
         // Reserved for the upcoming three.js leaf system.
         if (this.treeScene) {
             this.treeScene.setStage(this.treeStage);
-            this.treeScene.refresh();
+            this.treeScene.refresh(this.buildLeafDescriptors());
         }
     }
 }
