@@ -4595,7 +4595,7 @@ textarea::placeholder {
     gap: 10px;
 }
 
-/* Interactive RP teddy bear companion - changes made by nick */
+/* Interactive RP teddy bear companion - changes made by xiangling */
 .rp-bear-companion {
     position: fixed;
     right: clamp(12px, 2.5vw, 30px);
@@ -4613,15 +4613,14 @@ textarea::placeholder {
     animation: rpBearFloat 4s ease-in-out infinite;
 }
 
-.rp-bear-companion[hidden] {
-    display: none;
-}
+.rp-bear-companion[hidden] { display: none; }
 
 .rp-bear-companion.is-excited {
-    animation: rpBearExcited 0.8s ease;
+    animation: rpBearExcited 0.8s ease, rpBearFloat 4s ease-in-out infinite;
 }
 
-.rp-bear-companion.is-waving .rp-bear-arm.right {
+.rp-bear-companion.is-waving .bear-svg-paw-right {
+    transform-origin: 50% 15%;
     animation: rpBearWave 0.72s ease-in-out 2;
 }
 
@@ -4735,273 +4734,43 @@ textarea::placeholder {
     background: linear-gradient(180deg, #ffffff, #eff6ff);
 }
 
-.rp-bear-companion.mood-success .rp-bear {
-    animation: rpBearHappy 0.78s ease;
-}
+.rp-bear-companion.mood-success .rp-bear { animation: rpBearHappy 0.78s ease; }
+.rp-bear-companion.mood-alert .rp-bear { animation: rpBearAttention 0.72s ease; }
 
-.rp-bear-companion.mood-thinking .rp-bear-head {
+/* 点头改到 SVG 头部 */
+.rp-bear-companion.mood-thinking .bear-svg-head {
     animation: rpBearNod 1.2s ease-in-out infinite;
 }
 
-.rp-bear-companion.mood-alert .rp-bear {
-    animation: rpBearAttention 0.72s ease;
-}
-
+/* 熊容器：保留 scale，宽改 140 匹配 SVG 比例 */
 .rp-bear {
     position: relative;
     display: block;
-    width: 128px;
+    width: 140px;
     height: 152px;
-    /* Slightly larger mascot without distorting the teddy parts - changes made by nick */
     transform: scale(1.1);
     transform-origin: right bottom;
     filter: drop-shadow(0 18px 22px rgba(24, 57, 43, 0.2));
 }
 
-.rp-bear-head,
-.rp-bear-ear,
-.rp-bear-body,
-.rp-bear-arm,
-.rp-bear-foot,
-.rp-bear-muzzle,
-.rp-bear-cheek,
-.rp-bear-shirt,
-.rp-bear-belly,
-.rp-bear-scarf,
-.rp-bear-shadow {
-    position: absolute;
+/* SVG 撑满容器 */
+.rp-bear-art {
     display: block;
+    width: 100%;
+    height: 100%;
 }
 
-.rp-bear-shadow {
-    /* Soft grounding shadow for the polished teddy bear - changes made by nick */
-    left: 16px;
-    right: 10px;
-    bottom: 2px;
-    height: 16px;
-    border-radius: 999px;
-    background: radial-gradient(ellipse at center, rgba(19, 78, 54, 0.22), rgba(19, 78, 54, 0));
-    transform: scaleX(1.08);
-    animation: rpBearShadow 4s ease-in-out infinite;
-}
-
-.rp-bear-ear {
-    top: 7px;
-    width: 36px;
-    height: 36px;
-    border: 5px solid #704226;
-    border-radius: 999px;
-    background: linear-gradient(145deg, #d59b61, #9d6035);
-    box-shadow: inset 3px 3px 0 rgba(255, 229, 196, 0.28);
-}
-
-.rp-bear-ear::after {
-    content: '';
-    position: absolute;
-    inset: 8px;
-    border-radius: 999px;
-    background: radial-gradient(circle, #ffd0a2, #e39d6a);
-}
-
-.rp-bear-ear.left {
-    left: 13px;
-}
-
-.rp-bear-ear.right {
-    right: 13px;
-}
-
-.rp-bear-head {
-    top: 20px;
-    left: 19px;
-    z-index: 2;
-    width: 88px;
-    height: 76px;
-    border: 5px solid #704226;
-    border-radius: 42px 42px 36px 36px;
-    background:
-        radial-gradient(circle at 32% 24%, rgba(255, 229, 196, 0.52), transparent 28%),
-        linear-gradient(145deg, #d79a5c, #a46337 72%);
-    box-shadow: inset -8px -10px 0 rgba(103, 55, 29, 0.16);
-}
-
-.rp-bear-eye {
-    position: absolute;
-    top: 26px;
-    width: 10px;
-    height: 12px;
-    border-radius: 999px;
-    /* Cleaner non-glitchy eyes with a small highlight - changes made by nick */
-    background: radial-gradient(circle at 34% 30%, #ffffff 0 14%, #1f130b 16% 100%);
-    animation: rpBearBlink 5.5s infinite;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+/* SVG 部件 transform 动画基准 */
+.bear-svg-head,
+.bear-svg-eye,
+.bear-svg-paw-right {
+    transform-box: fill-box;
     transform-origin: center;
 }
 
-.rp-bear-eye.left {
-    left: 24px;
-}
-
-.rp-bear-eye.right {
-    right: 24px;
-}
-
-.rp-bear-cheek {
-    /* Softer cute expression details - changes made by nick */
-    top: 43px;
-    width: 12px;
-    height: 8px;
-    border-radius: 999px;
-    background: rgba(244, 129, 132, 0.42);
-}
-
-.rp-bear-cheek.left {
-    left: 14px;
-}
-
-.rp-bear-cheek.right {
-    right: 14px;
-}
-
-.rp-bear-muzzle {
-    left: 26px;
-    bottom: 10px;
-    width: 36px;
-    height: 25px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #ffe0b9, #f2bf8e);
-    box-shadow: inset 0 -2px 0 rgba(134, 76, 40, 0.12);
-}
-
-.rp-bear-nose {
-    position: absolute;
-    top: 5px;
-    left: 12px;
-    width: 10px;
-    height: 8px;
-    border-radius: 999px 999px 8px 8px;
-    background: #1f130b;
-}
-
-.rp-bear-smile {
-    position: absolute;
-    left: 10px;
-    top: 10px;
-    width: 14px;
-    height: 9px;
-    border-bottom: 2px solid #1f130b;
-    border-radius: 0 0 999px 999px;
-}
-
-.rp-bear-body {
-    left: 27px;
-    bottom: 12px;
-    z-index: 1;
-    width: 74px;
-    height: 72px;
-    border: 5px solid #704226;
-    border-radius: 36px 36px 28px 28px;
-    background:
-        radial-gradient(circle at 35% 18%, rgba(255, 221, 181, 0.36), transparent 30%),
-        linear-gradient(145deg, #c87f45, #92522d);
-    box-shadow: inset -8px -8px 0 rgba(86, 44, 25, 0.16);
-}
-
-.rp-bear-shirt {
-    left: 12px;
-    top: 20px;
-    z-index: 2;
-    display: grid;
-    place-items: center;
-    width: 50px;
-    height: 38px;
-    border: 2px solid rgba(19, 99, 67, 0.22);
-    border-radius: 11px;
-    background: linear-gradient(180deg, #ffffff, #eefaf2);
-    box-shadow: 0 5px 10px rgba(19, 78, 54, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.rp-bear-shirt img {
-    width: 35px;
-    height: auto;
-    display: block;
-}
-
-.rp-bear-belly {
-    /* Plush belly highlight - changes made by nick */
-    left: 16px;
-    bottom: 7px;
-    z-index: 1;
-    width: 42px;
-    height: 28px;
-    border-radius: 999px 999px 22px 22px;
-    background: rgba(255, 206, 157, 0.5);
-}
-
-.rp-bear-scarf {
-    /* RP green scarf accent - changes made by nick */
-    left: 6px;
-    top: 5px;
-    z-index: 3;
-    width: 62px;
-    height: 15px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #0b8f64, #22b879);
-    box-shadow: 0 3px 0 rgba(8, 86, 59, 0.18);
-}
-
-.rp-bear-scarf::after {
-    content: '';
-    position: absolute;
-    right: 8px;
-    top: 10px;
-    width: 14px;
-    height: 24px;
-    border-radius: 4px 4px 8px 8px;
-    background: linear-gradient(180deg, #0f9c6d, #08704f);
-    transform: rotate(-12deg);
-}
-
-.rp-bear-arm {
-    top: 80px;
-    z-index: 0;
-    width: 27px;
-    height: 50px;
-    border: 5px solid #704226;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #c47a42, #9b5a31);
-    transform-origin: 50% 10%;
-}
-
-.rp-bear-arm.left {
-    left: 14px;
-    transform: rotate(26deg);
-}
-
-.rp-bear-arm.right {
-    right: 13px;
-    transform: rotate(-26deg);
-}
-
-.rp-bear-foot {
-    bottom: 0;
-    z-index: 0;
-    width: 38px;
-    height: 26px;
-    border: 5px solid #704226;
-    border-radius: 999px;
-    background: linear-gradient(145deg, #bf7740, #92522d);
-    box-shadow: inset 4px 3px 0 rgba(255, 217, 176, 0.18);
-}
-
-.rp-bear-foot.left {
-    left: 24px;
-    transform: rotate(10deg);
-}
-
-.rp-bear-foot.right {
-    right: 24px;
-    transform: rotate(-10deg);
+/* 眨眼 */
+.bear-svg-eye {
+    animation: rpBearBlink 5.5s infinite;
 }
 
 @keyframes rpBearFloat {
@@ -5013,16 +4782,6 @@ textarea::placeholder {
     }
 }
 
-@keyframes rpBearShadow {
-    0%, 100% {
-        opacity: 0.72;
-        transform: scaleX(1.08);
-    }
-    50% {
-        opacity: 0.42;
-        transform: scaleX(0.92);
-    }
-}
 
 @keyframes rpBearExcited {
     0%, 100% {
@@ -5038,10 +4797,10 @@ textarea::placeholder {
 
 @keyframes rpBearWave {
     0%, 100% {
-        transform: rotate(-26deg);
+        transform: rotate(0deg);
     }
     50% {
-        transform: rotate(-72deg) translateY(-5px);
+        transform: rotate(-40deg) translateY(-6px);
     }
 }
 
@@ -5124,7 +4883,7 @@ textarea::placeholder {
     }
 
     .rp-bear {
-        width: 128px;
+        width: 140px;
         height: 152px;
         /* Mobile teddy scale fix - changes made by nick */
         transform: scale(1.06);
@@ -5324,7 +5083,7 @@ body {
 .theme-name { font-size: 0.85rem; font-weight: 700; }
 .final-photo { width: 100%; border-radius: 22px; margin-top: 8px; box-shadow: 0 18px 40px rgba(23,56,42,0.18); }
 
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
 
 /* ===== Face filters ===== */
 .face-detection-status {

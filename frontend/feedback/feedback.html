@@ -344,32 +344,109 @@
             </span>
             <span class="rp-bear-actions" id="rp-bear-actions"></span>
         </span>
+        <!-- Teddy bear details - changes made by xiangling -->
         <span class="rp-bear" aria-hidden="true">
-            <!-- Teddy bear polish details - changes made by nick -->
-            <span class="rp-bear-shadow"></span>
-            <span class="rp-bear-ear left"></span>
-            <span class="rp-bear-ear right"></span>
-            <span class="rp-bear-head">
-                <span class="rp-bear-eye left"></span>
-                <span class="rp-bear-eye right"></span>
-                <span class="rp-bear-cheek left"></span>
-                <span class="rp-bear-cheek right"></span>
-                <span class="rp-bear-muzzle">
-                    <span class="rp-bear-nose"></span>
-                    <span class="rp-bear-smile"></span>
-                </span>
-            </span>
-            <span class="rp-bear-arm left"></span>
-            <span class="rp-bear-arm right"></span>
-            <span class="rp-bear-body">
-                <span class="rp-bear-scarf"></span>
-                <span class="rp-bear-shirt">
-                    <img src="/assets/static/rp-logo.png" alt="">
-                </span>
-                <span class="rp-bear-belly"></span>
-            </span>
-            <span class="rp-bear-foot left"></span>
-            <span class="rp-bear-foot right"></span>
+        <svg class="rp-bear-art" viewBox="100 100 1030 1120"
+             role="presentation" focusable="false">
+                <ellipse cx="628" cy="1196" rx="430" ry="20" fill="rgba(19,78,54,0.22)"/>
+      
+          <!-- left ear -->
+          <g>
+            <polygon points="165,325 222,228 333,170 460,228 480,340 400,400 275,465 205,435" fill="#D98649"/>
+            <polygon points="165,325 222,228 330,350 275,465 205,435" fill="#D4813F"/>
+            <polygon points="165,325 330,350 275,465 205,435" fill="#C56B38"/>
+            <polygon points="222,228 333,170 357,310 330,350" fill="#E39656"/>
+            <polygon points="333,170 430,198 460,228 357,310" fill="#F4B173"/>
+          </g>
+          <!-- right ear -->
+          <g>
+            <polygon points="740,200 880,130 990,178 1053,270 1025,392 955,425 930,500 800,340" fill="#E6995C"/>
+            <polygon points="757,205 880,130 858,272" fill="#F4B173"/>
+            <polygon points="880,130 990,178 890,300 858,272" fill="#E6995C"/>
+            <polygon points="990,178 1053,270 890,300" fill="#D4813F"/>
+            <polygon points="1053,270 1025,392 955,425 890,300" fill="#B8602F"/>
+          </g>
+      
+          <!-- body -->
+          <polygon points="400,680 860,680 910,750 988,865 965,945 925,1070 840,1160 640,1172 420,1160 330,1070 300,955 272,865 330,750" fill="#E08F55"/>
+          <polygon points="330,750 400,680 440,740 415,820 272,865" fill="#D98649"/>
+          <polygon points="272,865 415,820 380,930 300,955" fill="#DD8B52"/>
+          <polygon points="860,680 910,750 988,865 870,830 820,740" fill="#D98649"/>
+          <polygon points="870,830 988,865 965,945 905,935" fill="#C96F3B"/>
+          <!-- belly -->
+          <polygon points="465,960 800,960 800,1010 790,1060 730,1125 640,1168 540,1165 500,1100 470,1010" fill="#F3B47A"/>
+          <polygon points="500,1100 540,1165 640,1168 730,1125 700,1140 600,1150" fill="#E39A60"/>
+      
+          <!-- left foot -->
+          <g>
+            <polygon points="200,1015 255,950 300,955 380,985 470,1050 520,1150 430,1188 250,1178 215,1100" fill="#D17F47"/>
+            <polygon points="255,950 300,955 380,985 290,990 205,1015" fill="#F0A367"/>
+            <polygon points="380,985 470,1050 520,1150 425,1190 430,1130" fill="#C56F3B"/>
+            <polygon points="235,1075 268,1020 350,1035 395,1100 388,1160 300,1165 245,1130" fill="#F2B27C"/>
+          </g>
+          <!-- right foot (mirrored) -->
+          <g transform="translate(1257 0) scale(-1 1)">
+            <polygon points="200,1015 255,950 300,955 380,985 470,1050 520,1150 430,1188 250,1178 215,1100" fill="#C97543"/>
+            <polygon points="255,950 300,955 380,985 290,990 205,1015" fill="#EA9A5F"/>
+            <polygon points="380,985 470,1050 520,1150 425,1190 430,1130" fill="#B8602F"/>
+            <polygon points="235,1075 268,1020 350,1035 395,1100 388,1160 300,1165 245,1130" fill="#EDAA73"/>
+          </g>
+      
+          <!-- heart -->
+          <polygon points="415,815 498,738 570,748 642,795 642,1102 590,1070 480,985 445,890" fill="#FB3A4A"/>
+          <polygon points="415,815 498,738 570,748 642,795 485,822" fill="#FD5560"/>
+          <polygon points="485,822 642,795 642,880 500,875" fill="#FD4553"/>
+          <polygon points="415,815 485,822 500,875 445,890" fill="#E8283A"/>
+          <polygon points="480,985 500,875 642,935 642,1102 590,1070" fill="#E32230"/>
+          <polygon points="642,795 710,748 790,744 865,812 822,890 800,985 700,1060 642,1102" fill="#F72A3A"/>
+          <polygon points="642,795 710,748 790,744 865,812 790,825" fill="#FC4452"/>
+          <polygon points="642,880 790,825 822,890 642,935" fill="#F8303F"/>
+          <polygon points="790,825 865,812 822,890" fill="#E8212F"/>
+          <polygon points="642,935 822,890 800,985 700,1060 642,1102" fill="#DE1F2C"/>
+      
+          <!-- paws -->
+          <g>
+            <polygon points="372,908 395,830 470,860 495,895 492,945 430,985 380,945" fill="#E39656"/>
+            <polygon points="395,830 470,860 495,895 372,908" fill="#F2A768"/>
+          </g>
+          <g transform="translate(1281 0) scale(-1 1)">
+            <g class="bear-svg-paw-right">
+              <polygon points="372,908 395,830 470,860 495,895 492,945 430,985 380,945" fill="#DB8C52"/>
+              <polygon points="395,830 470,860 495,895 372,908" fill="#EC9F62"/>
+            </g>
+          </g>
+          
+          <!-- head -->
+          <g class="bear-svg-head">
+            <polygon points="457,225 618,163 757,205 880,300 965,450 1003,602 940,692 830,700 450,722 310,725 248,645 262,545 300,430 330,350 380,290" fill="#EFA163"/>
+            <polygon points="457,225 380,290 330,350 300,430 262,545 315,517" fill="#DD8750"/>
+            <polygon points="757,205 880,300 965,450 935,478" fill="#DD8750"/>
+            <polygon points="935,478 965,450 1003,602 900,640 875,568" fill="#E58D55"/>
+            <polygon points="248,645 262,545 315,517 385,597 450,722 310,725" fill="#E08A52"/>
+            <polygon points="248,645 385,597 450,722 310,725" fill="#CE7640"/>
+            <polygon points="315,517 520,468 525,570 385,597" fill="#FAB878"/>
+            <polygon points="385,597 525,570 450,720" fill="#F3A768"/>
+            <polygon points="800,463 935,478 875,568 735,545 795,520" fill="#F8B574"/>
+            <polygon points="735,545 875,568 830,700 800,648" fill="#EB9A5E"/>
+            <polygon points="480,662 525,570 740,560 800,648" fill="#FBCB9A"/>
+            <polygon points="450,722 480,662 800,648 830,700" fill="#C96F3B"/>
+            <polygon points="830,700 875,568 905,640 1003,602 940,692" fill="#CC7440"/>
+
+            <!-- face -->
+            <g class="bear-svg-eye">
+              <circle cx="472" cy="438" r="43" fill="#3B2A24"/>
+              <circle cx="478" cy="421" r="9" fill="#fff"/>
+            </g>
+            <g class="bear-svg-eye">
+              <circle cx="772" cy="422" r="43" fill="#3B2A24"/>
+              <circle cx="763" cy="402" r="9" fill="#fff"/>
+            </g>
+            <polygon points="540,437 715,428 775,500 735,555 560,572 482,520" fill="#3A2D29"/>
+            <polygon points="548,470 722,462 752,505 735,545 560,550 520,515" fill="#4F4541"/>
+            <path d="M628 568 V596 M628 596 Q612 624 576 618 M628 596 Q648 622 702 606"
+                fill="none" stroke="#2E2420" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </svg>
         </span>
     </button>
 
