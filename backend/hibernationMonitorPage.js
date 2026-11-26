@@ -63,6 +63,7 @@ const PAGE = `<!DOCTYPE html>
   var downSince = null;       // when the connection was lost
   var warnUntil = null;       // when the server said it would hibernate
   var warnRule = '';
+  var warnKind = 'warning';   // 'warning' (minutes ahead) or 'countdown' (seconds to go)
   var timer = null;
 
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -95,8 +96,12 @@ const PAGE = `<!DOCTYPE html>
       setStatus('down', 'SERVER UNREACHABLE', 'Down for ' + span(Date.now() - downSince) + '. Trying to reconnect automatically...');
     } else if (warnUntil) {
       var left = warnUntil - Date.now();
-      setStatus('warning', 'SERVER WILL HIBERNATE SOON',
-        (left > 0 ? 'In about ' + span(left) : 'Any moment now') + (warnRule ? ' (' + warnRule + ' rule)' : ''));
+      if (warnKind === 'countdown') {
+        setStatus('warning', 'HIBERNATING IN ' + span(left), 'An admin can still cancel from the admin page' + (warnRule ? ' (' + warnRule + ')' : ''));
+      } else {
+        setStatus('warning', 'SERVER WILL HIBERNATE SOON',
+          (left > 0 ? 'In about ' + span(left) : 'Any moment now') + (warnRule ? ' (' + warnRule + ' rule)' : ''));
+      }
     }
   }
 
@@ -151,12 +156,26 @@ const PAGE = `<!DOCTYPE html>
 
   socket.on('hibernation:event', function (e) {
     touch();
-    var kind = e.type === 'warning' ? 'warning' : (e.type === 'hibernating' ? 'down' : '');
+    var kind = (e.type === 'warning' || e.type === 'hibernate_countdown') ? 'warning'
+      : (e.type === 'hibernating' || e.type === 'hibernate_failed') ? 'down'
+      : (e.type === 'resumed' ? 'up' : '');
     log(kind, String(e.type).toUpperCase(), e.message);
     if (e.type === 'warning' && typeof e.minutesLeft === 'number') {
       warnUntil = Date.now() + e.minutesLeft * 60000;
       warnRule = e.rule || '';
+      warnKind = 'warning';
       render();
+    } else if (e.type === 'hibernate_countdown' && typeof e.secondsLeft === 'number') {
+      warnUntil = Date.now() + e.secondsLeft * 1000;
+      warnRule = e.manual ? 'manual test' : (e.rule || '');
+      warnKind = 'countdown';
+      render();
+    } else if (e.type === 'hibernate_cancelled' || e.type === 'hibernate_failed') {
+      warnUntil = null;
+      if (!downSince) setStatus('connected', 'SERVER ONLINE', e.message);
+    } else if (e.type === 'resumed') {
+      warnUntil = null;
+      if (!downSince) setStatus('connected', 'SERVER ONLINE', e.message);
     } else if (e.type === 'hibernating') {
       warnUntil = null;
       setStatus('warning', 'SERVER IS HIBERNATING NOW', e.message);
