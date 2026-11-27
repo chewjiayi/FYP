@@ -549,3 +549,27 @@ body {
     font-size: 15px;
     line-height: 1.55;
 }
+
+/* =========================
+   SCREEN LANDING LEAF (new feedback overlay)
+   ========================= */
+.screen-landing-leaf {
+    position: absolute;
+    bottom: 40px;
+    transform: translateX(-50%);
+    z-index: 20;
+    pointer-events: none;
+    filter: drop-shadow(0 6px 14px rgba(15, 42, 27, 0.35));
+    transition: transform 1.5s cubic-bezier(0.3, 0.7, 0.4, 1), opacity 1.5s ease-in;
+}
+
+.screen-landing-leaf img {
+    display: block;
+}
+
+.screen-landing-leaf.depart {
+    transform: translateX(calc(-50% + var(--landing-drift, 0px)))
+               translateY(-78vh)
+               rotate(var(--landing-rotate, 0deg)) scale(0.6);
+    opacity: 0;
+}

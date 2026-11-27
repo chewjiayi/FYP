@@ -156,6 +156,10 @@ class TreeManager {
         // VIP Names (reserved for golden leaves in the three.js renderer)
         this.vipNames = new Set();
 
+        // Leaf-landing animation tracking
+        this.knownVisitorKeys = new Set();
+        this.pendingLandingKeys = new Set();
+
         this.badgeLeafProfiles = {
             'feedback-completer': {
                 label: 'Feedback Contributor',
@@ -396,6 +400,7 @@ class TreeManager {
 
             this.visitors = Array.isArray(data) ? data : [];
             console.log(`Loaded ${this.visitors.length} visitors`);
+            this.detectNewVisitors();
         } catch (error) {
             console.error('Error fetching visitor data:', error);
             this.visitors = [];
@@ -566,6 +571,7 @@ class TreeManager {
 
         this.selectedYear = Number(page.year) || this.currentYear;
         this.isReviewMode = this.selectedYear !== this.currentYear;
+        this.suppressNextLandingDetect = true;
         await this.fetchVisitorData(this.selectedYear);
         if (this.demoYearsEnabled && !this.visitors.length && page.isDemo) {
             this.visitors = this.createDemoVisitors(this.selectedYear, Number(page.leafCount) || 36);
@@ -578,6 +584,7 @@ class TreeManager {
     async viewLiveYear() {
         this.selectedYear = this.currentYear;
         this.isReviewMode = false;
+        this.suppressNextLandingDetect = true;
         await this.fetchVisitorData(this.currentYear);
         this.updateTreeHeading();
         this.refreshTree();
@@ -755,6 +762,34 @@ class TreeManager {
         }
     }
 
+    getVisitorKey(visitor) {
+        if (visitor?.id) return `id:${visitor.id}`;
+        if (visitor?.name) return `name:${visitor.name}`;
+        return `anon:${visitor?.created_at || ''}`;
+    }
+
+    // Flag visitors that appeared since the last fetch so the scene can
+    // play a leaf-landing animation for them. Skipped on first load,
+    // year-review mode and demo visitors.
+    detectNewVisitors() {
+        const keys = this.visitors.map(v => this.getVisitorKey(v)).filter(Boolean);
+        const isFirstLoad = this.knownVisitorKeys.size === 0;
+        const animateLanding = !isFirstLoad
+            && !this.isReviewMode
+            && !this.suppressNextLandingDetect;
+        this.suppressNextLandingDetect = false;
+
+        this.pendingLandingKeys = new Set();
+        if (animateLanding) {
+            keys.forEach((key) => {
+                if (!this.knownVisitorKeys.has(key)) {
+                    this.pendingLandingKeys.add(key);
+                }
+            });
+        }
+        this.knownVisitorKeys = new Set(keys);
+    }
+
     // Build plain leaf descriptors for the Three.js scene.
     // Mirrors the 2D tree's image selection: VIP gold leaves, New/Old by
     // submission age, badge-preferred side, admin overrides, badge tint.
@@ -800,6 +835,7 @@ class TreeManager {
                 name: visitor.name || 'Anonymous',
                 seed: `${visitorSeed}|leaf|${index}`,
                 visitorIndex: index,
+                landing: this.pendingLandingKeys.has(this.getVisitorKey(visitor)),
                 opacity: this.leafOpacity
             };
         });
@@ -810,6 +846,7 @@ class TreeManager {
         if (this.treeScene) {
             this.treeScene.setStage(this.treeStage);
             this.treeScene.refresh(this.buildLeafDescriptors());
+            this.pendingLandingKeys.clear();
         }
     }
 }

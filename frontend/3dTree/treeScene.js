@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const MODEL_URL = '/assets/Tree/widen_leaves.glb';
+const MODEL_URL = '/assets/Tree/esg_tree.glb';
 
 // Leaf placement tuning (fractions of the model bounding box)
 const CANOPY_CENTER_Y = 0.60;    // canopy centre height, fraction of model height from bottom
@@ -28,6 +28,7 @@ export class TreeScene {
         this._leafTextures = new Map();
         this._tintedTextures = new Map();
         this._leafToken = 0;
+        this._leafAnimations = [];
         this.resizeObserver = null;
         this.animationFrameId = null;
         this.clock = new THREE.Clock();
@@ -129,14 +130,14 @@ export class TreeScene {
         // Distance is derived from the camera FOV and aspect ratio so the
         // framing stays correct on any screen size.
         const distance = this._fitDistance(size);
-        const camDir = new THREE.Vector3(0.55, 0, 1).normalize();
+        const camDir = new THREE.Vector3(0.1, 0, 1).normalize();
         this.camera.position.copy(camDir).multiplyScalar(distance);
         this.camera.near = maxDim / 100;
         this.camera.far = maxDim * 100;
         this.camera.updateProjectionMatrix();
 
-        // Orbit/zoom target is the box centre so zooming stays balanced and
-        // the base is not pushed off-screen.
+        // Orbit/zoom target is the box centre so the whole tree (base to
+        // canopy tip) is centred and zooming stays balanced.
         this.controls.target.set(0, 0, 0);
         this.controls.minDistance = maxDim * 0.25;
         this.controls.maxDistance = maxDim * 10;
@@ -154,7 +155,7 @@ export class TreeScene {
         const distForHeight = halfHeight / tanHalfFov;
         const distForWidth = halfWidth / (tanHalfFov * aspect);
 
-        return Math.max(distForHeight, distForWidth) * 1.1;
+        return Math.max(distForHeight, distForWidth) * 1.35;
     }
 
     _onResize() {
@@ -176,9 +177,87 @@ export class TreeScene {
 
     _animate() {
         this.animationFrameId = requestAnimationFrame(this._animate);
-        this.clock.getDelta();
+        const delta = this.clock.getDelta();
         this.controls.update();
+        this._updateLeafAnimations(delta);
         this.renderer.render(this.scene, this.camera);
+    }
+
+    // ==================== LEAF LANDING ANIMATION ====================
+
+    // Two-phase landing: the leaf appears at the bottom centre of the screen
+    // for 10-15 seconds, then floats into the canopy and attaches at its
+    // surface position.
+    _startLeafLanding(sprite, targetPosition, leafSize) {
+        const random = this._createSeededRandom(`${sprite.userData.leafKey}|fall`);
+
+        // Phase 1 spawn point: bottom-centre of the tree — at the trunk base,
+        // pushed toward the camera so the leaf floats directly in front of
+        // the trunk from the viewer's perspective.
+        const toCamera = this.camera.position.clone().sub(this.controls.target);
+        toCamera.y = 0;
+        toCamera.normalize();
+
+        const front = new THREE.Vector3(0, -this._modelSize.y * 0.47, 0)
+            .addScaledVector(toCamera, this._modelMaxDim * 0.3);
+        front.x += (random() - 0.5) * this._modelSize.x * 0.05;
+        front.z += (random() - 0.5) * this._modelSize.z * 0.05;
+
+        sprite.position.copy(front);
+
+        this._leafAnimations.push({
+            sprite,
+            phase: 'hold',
+            holdT: 0,
+            holdDuration: 10 + random() * 5,
+            moveT: 0,
+            moveDuration: 1.8 + random() * 0.8,
+            from: front,
+            to: targetPosition.clone(),
+            baseOpacity: sprite.material.opacity,
+            swayAmp: this._modelSize.x * 0.04 * (random() > 0.5 ? 1 : -1),
+            swayFreq: 1.4 + random() * 1.2
+        });
+    }
+
+    _updateLeafAnimations(delta) {
+        if (!this._leafAnimations.length) return;
+
+        for (let i = this._leafAnimations.length - 1; i >= 0; i--) {
+            const anim = this._leafAnimations[i];
+
+            if (anim.phase === 'hold') {
+                // Fade in while hovering in front of the tree
+                anim.holdT += delta;
+                const fade = Math.min(1, anim.holdT / 0.4);
+                anim.sprite.material.opacity = anim.baseOpacity * fade;
+
+                // Gentle idle bob while waiting
+                anim.sprite.position.y = anim.from.y + Math.sin(anim.holdT * 2.2) * this._modelSize.y * 0.01;
+
+                if (anim.holdT >= anim.holdDuration) {
+                    anim.phase = 'move';
+                    anim.moveT = 0;
+                }
+                continue;
+            }
+
+            // Phase 2: blow toward the tree and attach (ease-out = decelerate
+            // as it reaches the surface)
+            anim.moveT += delta / anim.moveDuration;
+
+            if (anim.moveT >= 1) {
+                anim.sprite.position.copy(anim.to);
+                anim.sprite.material.opacity = anim.baseOpacity;
+                this._leafAnimations.splice(i, 1);
+                continue;
+            }
+
+            const eased = 1 - Math.pow(1 - anim.moveT, 2.2);
+            anim.sprite.position.lerpVectors(anim.from, anim.to, eased);
+            anim.sprite.position.x += Math.sin(anim.moveT * Math.PI * anim.swayFreq) * anim.swayAmp * (1 - eased);
+            anim.sprite.position.y += Math.sin(anim.moveT * Math.PI * anim.swayFreq * 0.7) * anim.swayAmp * 0.5 * (1 - eased);
+        }
     }
 
     // ==================== LEAVES ====================
@@ -189,6 +268,7 @@ export class TreeScene {
 
         const token = ++this._leafToken;
         this.leafGroup.clear();
+        this._leafAnimations = [];
 
         if (!leaves.length || !this._modelSize) return;
 
@@ -207,7 +287,14 @@ export class TreeScene {
         console.debug(`3D tree leaves: ${raycastPlaced}/${leaves.length} placed via raycast`);
 
         const sprites = await Promise.all(
-            placed.map(p => p.position ? this._createLeafSprite(p.desc, p.leafSize, p.position) : null)
+            placed.map(async p => {
+                if (!p.position) return null;
+                const sprite = await this._createLeafSprite(p.desc, p.leafSize, p.position);
+                if (sprite && p.desc.landing) {
+                    this._startLeafLanding(sprite, p.position, p.leafSize);
+                }
+                return sprite;
+            })
         );
 
         // Ignore stale rebuilds if refresh was called again
